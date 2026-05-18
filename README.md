@@ -2,7 +2,7 @@
 
 A command-line tool for generating **Pharr-style classical text readers** with facing vocabulary, in PDF format.
 
-Named after the tradition of Carl Pharr's annotated *Aeneid* — the conviction that a student should never need to leave the page to look up a word.
+Named after the tradition of Clyde Pharr's annotated *Aeneid* — the conviction that a student should never need to leave the page to look up a word.
 
 Supports **Latin** and **Ancient Greek** texts from the [Tesserae corpus](https://tesserae.caset.buffalo.edu/).
 
