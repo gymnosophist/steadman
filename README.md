@@ -12,7 +12,7 @@ Supports **Latin** and **Ancient Greek** texts from the [Tesserae corpus](https:
 
 ```bash
 # Clone the repo
-git clone https://github.com/amleedom/steadman.git
+git clone [https://github.com/gymnosophist/steadman.git](https://github.com/gymnosophist/steadman.git)
 cd steadman
 
 # Install (editable mode recommended for development)
