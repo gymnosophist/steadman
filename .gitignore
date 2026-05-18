@@ -1,0 +1,53 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+*.egg
+
+# Virtual environments — NEVER commit these
+venv/
+.venv/
+env/
+.env/
+
+# The old approach committed the entire venv (2770 directories!).
+# A pyproject.toml + pip install is the correct solution.
+
+# Lexica and text data — fetched at runtime, not stored in the repo
+lexica/
+data/
+open_words/
+
+# Disk cache (populated at runtime by platformdirs)
+# Location: ~/.cache/steadman/ (Linux/macOS) or equivalent
+# Do not store in the repo. Each user's cache is their own.
+.cache/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Jupyter notebooks (keep in a separate branch or gist if needed)
+*.ipynb
+.ipynb_checkpoints/
+
+# Output PDFs (generated artifacts, not source)
+*.pdf
+*.docx
+
+# Test coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Type checker
+.mypy_cache/
