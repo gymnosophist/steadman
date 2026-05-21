@@ -34,7 +34,10 @@ log = logging.getLogger(__name__)
 # Tesserae REST API
 # ---------------------------------------------------------------------------
 
-TESSERAE_API = "https://tesserae.caset.buffalo.edu/api/texts" # removed trailing slash 
+TESSERAE_API = "https://tesserae.caset.buffalo.edu/api/texts" # removed trailing slash, added '/api/'
+# added github links 
+GITHUB_API = "https://api.github.com/repos/tesserae/tesserae/contents/texts"
+GITHUB_RAW = "https://raw.githubusercontent.com/tesserae/tesserae/master/texts"
 
 # Language slugs as Tesserae understands them.
 # slight edits to lang_map dict 
@@ -45,6 +48,10 @@ LANG_MAP = {
     "grc": "greek",
 }
 
+GITHUB_LANG_DIR = {
+    "la": "la",
+    "greek": "grc",
+}
 
 
 @dataclass
@@ -66,6 +73,21 @@ class Work:
     def display(self) -> str:
         """Human-readable one-liner for the interactive menu."""
         return f"{self.author}, {self.title} ({self.language})"
+    
+def _github_filename(work: Work) -> str:
+    """
+    Convert a Tesserae v6 object_id to its GitHub repo filename.
+
+    v6 splits works into parts: 'ammianus.rerum_gestarum.part.14.tess'
+    GitHub stores the whole work:  'ammianus.rerum_gestarum.tess'
+
+    We strip '.part.N' and keep the base name.
+    """
+    import re
+    name = work.object_id  # e.g. 'ammianus.rerum_gestarum.part.14.tess'
+    name = re.sub(r'\.part\.\d+', '', name)   # → 'ammianus.rerum_gestarum.tess'
+    name = re.sub(r'\.book\.\d+', '', name)   # handle .book.N variants too
+    return name
 
 
 def fetch_catalog(language: str | None = None) -> list[Work]:
@@ -138,67 +160,42 @@ def fetch_catalog(language: str | None = None) -> list[Work]:
     works.sort(key=lambda w: (w.author.lower(), w.title.lower()))
     return works
 
-
 def fetch_text(work: Work) -> list[str]:
     """
-    Download and return the lines of a work as a list of strings.
+    Fetch text lines from the tesserae/tesserae GitHub repo.
 
-    Tesserae exposes individual text tokens via:
-        GET /texts/{object_id}/tokens/
-    but for our purposes the raw text endpoint is more useful:
-        GET /texts/{object_id}/
-
-    The API returns a JSON object with a 'tokens' list or a 'units' list
-    (depending on API version). We reconstruct prose paragraphs / verse
-    lines from it.
-
-    Returns a list of non-empty line strings, ready for chunking.
+    Uses the raw file URL directly. The .tess format is:
+        <author.work book.line>TABtext content
+    We strip the locus tag and return the text lines only.
     """
-    # URL-encode the object_id safely
-    from urllib.parse import quote
-    encoded_id = quote(work.object_id, safe="")
-    url = f"{TESSERAE_API}{encoded_id}/"
+    lang_dir = GITHUB_LANG_DIR.get(work.language, work.language)
+    filename = _github_filename(work)
+    url = f"{GITHUB_RAW}/{lang_dir}/{filename}"
 
     try:
         resp = requests.get(url, timeout=30)
         resp.raise_for_status()
     except requests.RequestException as exc:
         raise RuntimeError(
-            f"Could not fetch text '{work.display()}' from Tesserae.\n"
-            f"Detail: {exc}"
+            f"Could not fetch '{work.display()}' from GitHub.\n"
+            f"URL tried: {url}\nDetail: {exc}"
         ) from exc
 
-    data = resp.json()
-
-    # Tesserae returns tokens keyed by locus (book.line or book.chapter.section).
-    # We reconstruct lines by joining tokens that share a locus prefix.
-    tokens = data.get("tokens", [])
-    if not tokens:
-        # Try alternate key name
-        tokens = data.get("units", [])
-
-    if not tokens:
-        raise RuntimeError(
-            f"Tesserae returned no tokens for '{work.display()}'.\n"
-            f"The text may not be available in this API version."
-        )
-
-    # Group tokens by their locus (line/section) to reconstruct readable lines.
-    lines_by_locus: dict[str, list[str]] = {}
-    for tok in tokens:
-        locus = tok.get("locus", tok.get("tag", ""))
-        form = tok.get("form", tok.get("display", ""))
-        if locus not in lines_by_locus:
-            lines_by_locus[locus] = []
-        lines_by_locus[locus].append(form)
-
     lines = []
-    for locus in sorted(lines_by_locus.keys()):
-        line = " ".join(lines_by_locus[locus]).strip()
-        if line:
-            lines.append(line)
+    # Replace the tab-splitting block with this:
+    for raw_line in resp.text.splitlines():
+        raw_line = raw_line.strip()
+        if not raw_line or raw_line.startswith("#"):
+            continue
+        # Format: <locus> text  (space after closing >, no tab)
+        if ">" in raw_line:
+            _, text = raw_line.split(">", 1)
+            text = text.strip()
+            if text:
+                lines.append(text)
 
     return lines
+
 
 
 def chunk_lines(lines: list[str], chunk_size: int, mode: str) -> Iterator[str]:
