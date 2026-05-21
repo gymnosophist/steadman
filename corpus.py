@@ -34,16 +34,17 @@ log = logging.getLogger(__name__)
 # Tesserae REST API
 # ---------------------------------------------------------------------------
 
-TESSERAE_API = "https://tesserae.caset.buffalo.edu/texts/"
+TESSERAE_API = "https://tesserae.caset.buffalo.edu/texts" # removed trailing slash 
 
 # Language slugs as Tesserae understands them.
+# slight edits to lang_map dict 
 LANG_MAP = {
-    "latin": "latin",
-    "la": "latin",
-    "greek": "greek",
+    "latin": "la",
+    "la": "la",
+    "greek": "greek",   # we'll verify the Greek code below
     "grc": "greek",
-    "greek ancient": "greek",
 }
+
 
 
 @dataclass
@@ -83,16 +84,33 @@ def fetch_catalog(language: str | None = None) -> list[Work]:
 
     We normalise the language field so callers can use 'la', 'grc', etc.
     """
+    params = {}
+    if language:
+        lang_code = LANG_MAP.get(language.lower(), language.lower())
+        params["language"] = lang_code
+
     try:
-        resp = requests.get(TESSERAE_API, timeout=15)
+        resp = requests.get(TESSERAE_API, params=params, timeout=15)
         resp.raise_for_status()
     except requests.RequestException as exc:
-        raise RuntimeError(
-            f"Could not reach Tesserae API at {TESSERAE_API}.\n"
-            f"Check your network connection. Detail: {exc}"
-        ) from exc
+        raise RuntimeError(f"Could not reach Tesserae API. Detail: {exc}") from exc
 
-    raw = resp.json()
+    # API returns a bare JSON array, not a wrapped object
+    items = resp.json()
+
+    works = []
+    for item in items:
+        works.append(Work(
+            object_id=item.get("id", ""),        # key is "id", not "object_id"
+            author=item.get("author", "Unknown"),
+            title=item.get("title", "Unknown"),
+            language=item.get("language", ""),
+            cts_urn=item.get("id", ""),
+        ))
+
+    works.sort(key=lambda w: (w.author.lower(), w.title.lower()))
+    return works
+
 
     # Tesserae wraps results differently depending on version; handle both.
     # Some versions return a list directly; others wrap in {"texts": [...]}.
