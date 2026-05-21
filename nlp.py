@@ -139,6 +139,10 @@ def lemmatise(tokens: list[str], language: str) -> list[str]:
     This degrades gracefully: the program still produces output, just
     with inflected forms instead of headwords in the vocabulary list.
     """
+    
+    # Normalise language codes from Tesserae ('la', 'grc') to full names
+    language = {"la": "latin", "grc": "greek"}.get(language, language)
+
     if language not in _lemmatisers:
         if language == "latin":
             _lemmatisers[language] = _get_latin_lemmatiser()
