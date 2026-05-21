@@ -34,7 +34,7 @@ log = logging.getLogger(__name__)
 # Tesserae REST API
 # ---------------------------------------------------------------------------
 
-TESSERAE_API = "https://tesserae.caset.buffalo.edu/texts" # removed trailing slash 
+TESSERAE_API = "https://tesserae.caset.buffalo.edu/api/texts" # removed trailing slash 
 
 # Language slugs as Tesserae understands them.
 # slight edits to lang_map dict 
