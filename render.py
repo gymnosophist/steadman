@@ -62,12 +62,12 @@ log = logging.getLogger(__name__)
 # Gentium Plus is available from SIL International.
 # We look for it in a few common locations.
 _GENTIUM_SEARCH_PATHS = [
+    Path(__file__).parent / "fonts",   # ← add this first so it's checked first
     Path("/usr/share/fonts/truetype/gentium"),
     Path("/usr/share/fonts/gentium"),
     Path.home() / ".local/share/fonts",
     Path.home() / "Library/Fonts",
     Path("C:/Windows/Fonts"),
-    Path(__file__).parent / "fonts",  # bundled with the package
 ]
 
 _FONT_NAME = "Helvetica"   # fallback
@@ -84,12 +84,10 @@ def _try_register_gentium() -> tuple[str, str, str]:
     If not found, returns the Helvetica fallback tuple and logs a warning.
     """
     candidates = {
-        "GentiumPlus": ["GentiumPlus-Regular.ttf", "GentiumPlus.ttf",
-                        "gentiumplus-regular.ttf"],
-        "GentiumPlus-Bold": ["GentiumPlus-Bold.ttf", "gentiumplus-bold.ttf"],
-        "GentiumPlus-Italic": ["GentiumPlus-Italic.ttf",
-                               "gentiumplus-italic.ttf"],
-    }
+    "GentiumPlus": ["Gentium-Regular.ttf", "GentiumPlus-Regular.ttf", "GentiumPlus.ttf"],
+    "GentiumPlus-Bold": ["Gentium-Bold.ttf", "GentiumPlus-Bold.ttf"],
+    "GentiumPlus-Italic": ["Gentium-Italic.ttf", "GentiumPlus-Italic.ttf"],
+}
 
     registered = {}
     for font_id, filenames in candidates.items():
