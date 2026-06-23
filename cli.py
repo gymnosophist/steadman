@@ -355,10 +355,15 @@ def run(args: argparse.Namespace) -> None:
     def vocab_progress(cur, tot):
         progress_bar(cur, tot, label="lemmatising")
 
+    threshold = args.threshold
+    if selected_work.part_num and args.threshold == 10:
+        threshold = 3   
+    print(f"\n  (Using threshold=3 for partial text; override with --threshold)")
+
     vocab_list = nlp.build_vocab_list(
         lines,
         language=selected_work.language,
-        exclude_threshold=args.threshold,
+        exclude_threshold=threshold,
         progress_callback=vocab_progress,
     )
     print(f"  {len(vocab_list)} vocabulary items selected.")

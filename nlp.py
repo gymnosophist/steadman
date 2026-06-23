@@ -20,6 +20,24 @@ Greek normalisation:
   We do NOT convert to betacode — that was necessary for the old
   Middle Liddell XML lookup (which keyed entries on betacode strings),
   but Logeion accepts Unicode directly.
+
+---------------------------------------------------------------------------
+Tokens vs lemmas — why both are tracked from here on
+---------------------------------------------------------------------------
+CLTK's lemmatiser frequently returns a bare morphological STEM rather
+than a true dictionary headword: 'languentibus' -> 'langu' instead of
+'langueo'. That stem is fine as a grouping key for frequency counting
+(the whole point of build_vocab_list), but it is NOT a safe key to hand
+to Whitaker's Words or Lewis-Short for dictionary lookup — Whitaker's is
+a morphological parser that expects the original inflected form and
+works out the headword itself; handing it a bare stem just fails to
+match (see lexicon.py's module docstring for the full investigation).
+
+So this module now returns (token, lemma) pairs throughout, instead of
+collapsing immediately to lemma-only lists. nlp.py still uses lemma for
+counting and the exclude_threshold filter (that logic is unaffected),
+but the ORIGINAL TOKEN for each surviving lemma is preserved so
+lexicon.py can do an accurate dictionary lookup later.
 """
 
 from __future__ import annotations
@@ -83,6 +101,11 @@ GREEK_STOPS = {
 _PUNC_RE = re.compile(r"[^\w\s\u0300-\u036f\u1f00-\u1fff]", re.UNICODE)
 
 
+def _normalise_lang(language: str) -> str:
+    """Normalise Tesserae short codes to full language names."""
+    return {"la": "latin", "grc": "greek"}.get(language.lower(), language.lower())
+
+
 def tokenise(text: str) -> list[str]:
     """
     Split text into word tokens, stripping punctuation.
@@ -138,10 +161,27 @@ def lemmatise(tokens: list[str], language: str) -> list[str]:
     If CLTK is unavailable, returns tokens unchanged (raw forms).
     This degrades gracefully: the program still produces output, just
     with inflected forms instead of headwords in the vocabulary list.
+
+    NOTE: kept for backward compatibility and for callers that only need
+    lemmas (e.g. simple frequency counting elsewhere). Prefer
+    lemmatise_pairs() below when you also need to preserve the original
+    token for dictionary lookup.
     """
-    
-    # Normalise language codes from Tesserae ('la', 'grc') to full names
-    language = {"la": "latin", "grc": "greek"}.get(language, language)
+    pairs = lemmatise_pairs(tokens, language)
+    return [lemma for (_tok, lemma) in pairs]
+
+
+def lemmatise_pairs(tokens: list[str], language: str) -> list[tuple[str, str]]:
+    """
+    Return a list of (original_token, lemma) pairs.
+
+    This is the version the rest of the pipeline should use: it keeps
+    the original inflected token around so lexicon.py can hand it to
+    Whitaker's Words (a morphological parser) instead of a bare CLTK
+    stem, which frequently fails to match anything (see lexicon.py's
+    module docstring).
+    """
+    language = _normalise_lang(language)
 
     if language not in _lemmatisers:
         if language == "latin":
@@ -153,16 +193,16 @@ def lemmatise(tokens: list[str], language: str) -> list[str]:
 
     lemmatiser = _lemmatisers.get(language)
     if lemmatiser is None:
-        return tokens  # graceful fallback
+        # Graceful fallback: token IS the lemma.
+        return [(tok, tok) for tok in tokens]
 
     try:
-        # CLTK's BackoffLemmatizer takes a list of tokens and returns
-        # a list of (token, lemma) pairs.
         pairs = lemmatiser.lemmatize(tokens)
-        return [lemma for (_tok, lemma) in pairs]
+        # CLTK already returns (token, lemma) pairs in this shape.
+        return list(pairs)
     except Exception as exc:
         log.debug("Lemmatisation failed: %s", exc)
-        return tokens
+        return [(tok, tok) for tok in tokens]
 
 
 # ---------------------------------------------------------------------------
@@ -174,7 +214,7 @@ def build_vocab_list(
     language: str,
     exclude_threshold: int = 10,
     progress_callback: Callable | None = None,
-) -> list[str]:
+) -> tuple[list[str], dict[str, str]]:
     """
     Analyse a full text and return the vocabulary list for the facing page.
 
@@ -194,15 +234,33 @@ def build_vocab_list(
         progress_callback:  Called with (current_line, total_lines).
 
     Returns:
-        Sorted list of unique lemmas to include in the vocabulary.
+        A tuple of:
+          - Sorted list of unique lemmas to include in the vocabulary
+            (same shape as before — callers that only used the old
+            single-list return value can take vocab_list[0]).
+          - A dict mapping lemma -> a representative original token
+            seen in the text for that lemma. This is what lexicon.py
+            should be given for dictionary lookup, NOT the lemma key
+            itself (see nlp.py / lexicon.py module docstrings).
 
     Why exclude high-frequency words?
       In Pharr's Aeneid, common words like 'arma' or 'que' are not glossed
       because a student at that level knows them. The threshold is the
       pedagogical judgment call. We expose it as a parameter.
+
+    Why track a representative token per lemma?
+      Because CLTK's lemma is sometimes a bare stem ('langu') that
+      Whitaker's Words cannot look up directly. We need a real inflected
+      form ('languentibus') to hand to the dictionary layer. Any one
+      occurrence will do — we just need ONE valid inflected form per
+      lemma, and the first one encountered is as good as any other for
+      this purpose.
     """
+    language = _normalise_lang(language)
     stops = LATIN_STOPS if language == "latin" else GREEK_STOPS
     all_lemmas: list[str] = []
+    # First token seen for each lemma — used later for dictionary lookup.
+    lemma_to_token: dict[str, str] = {}
     total = len(lines)
 
     for i, line in enumerate(lines):
@@ -210,8 +268,11 @@ def build_vocab_list(
             progress_callback(i + 1, total)
         tokens = tokenise(line)
         tokens = [t for t in tokens if t not in stops and len(t) > 1]
-        lemmas = lemmatise(tokens, language)
-        all_lemmas.extend(lemmas)
+        pairs = lemmatise_pairs(tokens, language)
+        for token, lemma in pairs:
+            all_lemmas.append(lemma)
+            if lemma not in lemma_to_token:
+                lemma_to_token[lemma] = token
 
     counts = Counter(all_lemmas)
 
@@ -223,34 +284,49 @@ def build_vocab_list(
         and len(lemma) > 1
     })
 
+    # Trim the token map down to just the lemmas that survived filtering.
+    vocab_tokens = {lemma: lemma_to_token[lemma] for lemma in vocab}
+
     log.info(
         "Vocabulary: %d unique lemmas, %d selected (threshold=%d)",
         len(counts), len(vocab), exclude_threshold,
     )
-    return vocab
+    return vocab, vocab_tokens
 
 
 def get_page_vocab(
     chunk: str,
     full_vocab_list: list[str],
     language: str,
-) -> list[str]:
+) -> list[tuple[str, str]]:
     """
-    For a given page chunk, return the subset of vocab_list that appears in it.
+    For a given page chunk, return the subset of vocab entries that
+    appear in it, as (lemma, original_token) pairs.
 
     This is called once per page when building the document.
-    We lemmatise the chunk and intersect with the precomputed vocab list.
+    We lemmatise the chunk and intersect with the precomputed vocab list,
+    keeping the page's OWN original token for each lemma — a word may be
+    inflected differently on different pages, and the token actually on
+    this page is the most useful one to hand to the dictionary lookup,
+    since it reflects exactly the form the student is looking at.
 
     Why not just look up every word on every page?
       Because the full vocabulary analysis happens once over the whole text.
       The exclude_threshold filtering needs the global word count to be
       meaningful. On a per-page basis we just ask: 'which words from our
-      list appear here?'
+      list appear here, and in what form?'
     """
+    language = _normalise_lang(language)
     stops = LATIN_STOPS if language == "latin" else GREEK_STOPS
     tokens = tokenise(chunk)
     tokens = [t for t in tokens if t not in stops and len(t) > 1]
-    lemmas = lemmatise(tokens, language)
-    # Intersect with the precomputed list, preserving alphabetical order
-    page_lemmas = sorted(set(lemmas) & set(full_vocab_list))
-    return page_lemmas
+    pairs = lemmatise_pairs(tokens, language)
+
+    vocab_set = set(full_vocab_list)
+    # First token on THIS page for each lemma that's in our vocab list.
+    page_map: dict[str, str] = {}
+    for token, lemma in pairs:
+        if lemma in vocab_set and lemma not in page_map:
+            page_map[lemma] = token
+
+    return sorted(page_map.items())
