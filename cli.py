@@ -168,13 +168,6 @@ def progress_bar(current: int, total: int, label: str = "", width: int = 40) -> 
 # ---------------------------------------------------------------------------
 
 def build_parser() -> argparse.ArgumentParser:
-    """
-    Build the argument parser.
-
-    All flags are optional — omitting any launches an interactive menu
-    for that step. This lets power users script the tool while keeping
-    it friendly for first-time use.
-    """
     p = argparse.ArgumentParser(
         prog="steadman",
         description=(
@@ -262,12 +255,10 @@ def run(args: argparse.Namespace) -> None:
       3. Text selection (menu or search filter)
       4. Format selection (if not given)
       5. Fetch text
-      6. NLP: build full vocabulary list
+      6. NLP: build full vocabulary list + token map
       7. Per-chunk: get page vocab, look up definitions
       8. Render PDF
     """
-    # Import here so the CLI help message is instantaneous even if
-    # heavy dependencies are slow to import.
     from steadman import corpus, nlp, lexicon, render
 
     # ── 1. Language ──────────────────────────────────────────────────────
@@ -291,7 +282,6 @@ def run(args: argparse.Namespace) -> None:
     selected_work = None
 
     if args.text:
-        # Filter catalog by the query string
         query = args.text.lower()
         matches = [
             w for w in catalog
@@ -347,6 +337,15 @@ def run(args: argparse.Namespace) -> None:
     except RuntimeError as exc:
         print(red(f"\n  Error: {exc}"))
         sys.exit(1)
+
+    if not lines:
+        print(red(
+            f"\n  Error: no text lines were returned for '{selected_work.display()}'.\n"
+            f"  The file may exist in the Tesserae repo but contain no parseable content.\n"
+            f"  Try a different text, or check the .tess file format manually."
+        ))
+        sys.exit(1)
+
     print(f" {green('done.')} ({len(lines)} lines)")
 
     # ── 7. Vocabulary analysis ───────────────────────────────────────────
@@ -355,37 +354,71 @@ def run(args: argparse.Namespace) -> None:
     def vocab_progress(cur, tot):
         progress_bar(cur, tot, label="lemmatising")
 
+    # For partial works (a single book), the whole-text frequency counts
+    # are lower simply because there's less text — drop the threshold so
+    # we don't exclude too many words.
     threshold = args.threshold
     if selected_work.part_num and args.threshold == 10:
-        threshold = 3   
-    print(f"\n  (Using threshold=3 for partial text; override with --threshold)")
+        threshold = 3
+        print(f"  (Using frequency threshold={threshold} for partial text; "
+              f"override with --threshold)")
 
-    vocab_list = nlp.build_vocab_list(
+    # build_vocab_list returns (vocab_list, token_map):
+    #   vocab_list  — sorted list of unique lemmas that passed the threshold
+    #   token_map   — dict mapping lemma -> a representative inflected token
+    #                 seen in the text, for use by lexicon.lookup_batch()
+    #                 (Whitaker's Words needs the inflected form, not the
+    #                 CLTK stem — see lexicon.py module docstring)
+    vocab_list, token_map = nlp.build_vocab_list(
         lines,
         language=selected_work.language,
         exclude_threshold=threshold,
         progress_callback=vocab_progress,
     )
-    print(f"  {len(vocab_list)} vocabulary items selected.")
+    print(f"  {len(vocab_list)} vocabulary items selected "
+          f"({len(token_map)} with representative tokens).")
 
     # ── 8. Chunk and look up definitions ─────────────────────────────────
     chunks = list(corpus.chunk_lines(lines, chunk_size=chunk_size, mode=fmt))
     print(f"\n  {cyan('Looking up definitions')} ({len(chunks)} pages)...")
 
-    vocab_by_chunk = []
-    lemma_order_by_chunk = []
+    vocab_by_chunk: list[dict] = []
+    lemma_order_by_chunk: list[list[str]] = []
     total_chunks = len(chunks)
 
     for i, chunk in enumerate(chunks):
         progress_bar(i + 1, total_chunks, label="dictionary lookups")
 
-        page_lemmas = nlp.get_page_vocab(chunk, vocab_list, selected_work.language)
+        # get_page_vocab returns [(lemma, token), ...] — the lemma is the
+        # CLTK grouping key, the token is the inflected form actually on
+        # this page (the best form to hand to Whitaker's for lookup).
+        page_pairs = nlp.get_page_vocab(chunk, vocab_list, selected_work.language)
 
-        # Look up each lemma — uses disk cache after first run
-        entries = lexicon.lookup_batch(page_lemmas, selected_work.language)
-        vocab_by_chunk.append(entries)
-        lemma_order_by_chunk.append(sorted(entries.keys()))
+        # Separate into parallel structures for lookup_batch:
+        #   tokens      — what to look up in the dictionary
+        #   cltk_lemmas — fallback keys for Lewis-Short if Whitaker's fails
+        tokens = [token for (_lemma, token) in page_pairs]
+        cltk_lemmas = {token: lemma for (lemma, token) in page_pairs}
 
+        # lookup_batch returns {token: Entry}
+        entries = lexicon.lookup_batch(
+            tokens,
+            language=selected_work.language,
+            cltk_lemmas=cltk_lemmas,
+        )
+
+        # Re-key by lemma (not token) so the render layer can sort and
+        # display entries alphabetically by dictionary headword.
+        # Entry.lemma is the reconstructed citation form ('gladius, -i, m.')
+        # after the morphology.py changes, so it's already display-ready.
+        entries_by_lemma = {
+            entry.lemma: entry
+            for entry in entries.values()
+        }
+        vocab_by_chunk.append(entries_by_lemma)
+        lemma_order_by_chunk.append(sorted(entries_by_lemma.keys()))
+
+    # ── 9. Render PDF ────────────────────────────────────────────────────
     print(f"\n  {cyan('Rendering PDF...')}", end="", flush=True)
 
     render.build_pdf(

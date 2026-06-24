@@ -10,6 +10,28 @@ Latin strategy (two-tier):
 
 Greek strategy:
   Middle Liddell JSON from PerseusDL/lexica, cached locally.
+
+---------------------------------------------------------------------------
+IMPORTANT: lookup() takes the ORIGINAL INFLECTED TOKEN, not a CLTK lemma.
+---------------------------------------------------------------------------
+Whitaker's Words is a full morphological parser, not a plain dictionary —
+it expects an inflected form ('languentibus') and works out the headword
+itself. CLTK's lemmatiser, by contrast, often returns a bare stem
+('langu') that is not a valid dictionary key for either Whitaker's or
+Lewis-Short, and the bare stem is also more likely to collide with an
+unrelated headword (e.g. 'hibern' matches both 'hibernus' [wintry] and
+'Hibernus' [Irishman]).
+
+So the pipeline is now:
+    nlp.py:    token (inflected) ---------> lemma (for counting/grouping)
+    lexicon.py: token (inflected) --------> Entry (lemma + POS + gloss)
+
+Both nlp.py's lemma and lexicon.py's Entry.lemma are derived from the same
+token, but independently — nlp.py needs a stable *grouping key* for
+frequency counts, while lexicon.py needs the *correct dictionary headword*
+for display. They are allowed to disagree (CLTK might say 'langu', while
+Whitaker's says 'langueo' is the headword) — the rendering layer uses
+Entry.lemma for display.
 """
 
 from __future__ import annotations
@@ -22,6 +44,8 @@ from dataclasses import dataclass
 
 import requests
 from platformdirs import user_cache_dir
+
+from .morphology import reconstruct_headword # edited to relative import 
 
 log = logging.getLogger(__name__)
 
@@ -44,6 +68,68 @@ ML_URL = (
     "https://raw.githubusercontent.com/PerseusDL/lexica/master/CTS_XML_TEI/perseus/"
     "pdllex/grc/ls/grc.ls.perseus-eng1.json"
 )
+
+# ---------------------------------------------------------------------------
+# Whitaker's frequency ranking
+#
+# Whitaker's Words frequently returns SEVERAL competing analyses for one
+# inflected form (different headwords that share an inflected form, or
+# different senses of the same headword). Each analysis carries a
+# `parsed_props["Frequency"]` field straight from Whitaker's own data,
+# ranking how common that particular word/sense actually is in the
+# corpus the dictionary was built from.
+#
+# We use this to pick the most plausible analysis instead of an arbitrary
+# one. Without this, 'hibernis' could resolve to 'Irishman' (Frequency:
+# Very Rare) just as easily as 'winter quarters' (Frequency: Uncommon) or
+# 'wintry' (Frequency: Common) — purely because of dict ordering.
+#
+# Lower number = more frequent = preferred.
+# ---------------------------------------------------------------------------
+
+_FREQUENCY_RANK = {
+    "Very Frequent": 0,
+    "Frequent": 1,
+    "Common": 2,
+    "Uncommon": 3,
+    "Rare": 4,
+    "Very Rare": 5,
+    "Inscription": 6,
+    "Graffiti": 7,
+    "Plinius": 8,
+}
+_UNKNOWN_FREQUENCY_RANK = 9  # sort dead last if Whitaker's gives us nothing
+
+# Whitaker's stores a handful of the most basic suppletive irregulars
+# (above all the copula 'sum'/'esse') as special-cased lexemes with
+# roots=[] and parsed_props=None — i.e. NO frequency metadata at all.
+# Left to _frequency_rank() alone, these would sort dead last (rank 9)
+# and lose to almost anything, which is exactly backwards: 'sum' is the
+# single most common verb in the language.
+#
+# We detect these the same way morphology.py does — by roots=[] AND an
+# exact match on the full senses tuple (not just the first sense string,
+# which is too short/generic to be a safe key on its own; e.g. 'sum' the
+# copula and 'sumo' [take up] would both risk matching on a bare 'be').
+_FORCE_RANK_FIRST_SENSES = {
+    ("to be, exist", "also used to form verb perfect passive tenses with NOM PERF PPL"),
+    ("be", "willing;", "wish;"),
+}
+
+
+def _frequency_rank(
+    parsed_props: dict | None,
+    senses: list[str] | None = None,
+) -> int:
+    if not parsed_props and senses:
+        key = tuple(s.strip() for s in senses)
+        if key in _FORCE_RANK_FIRST_SENSES:
+            return -1  # beats every real rank, including 0 ("Very Frequent")
+    if not parsed_props:
+        return _UNKNOWN_FREQUENCY_RANK
+    label = parsed_props.get("Frequency")
+    return _FREQUENCY_RANK.get(label, _UNKNOWN_FREQUENCY_RANK)
+
 
 # ---------------------------------------------------------------------------
 # Entry dataclass
@@ -96,26 +182,63 @@ def _get_parser():
 
 
 def _lookup_latin_whitaker(word: str) -> Entry | None:
-    """Primary Latin lookup via Whitaker's Words."""
+    """
+    Primary Latin lookup via Whitaker's Words.
+
+    `word` should be the ORIGINAL INFLECTED TOKEN as it appeared in the
+    text (e.g. 'languentibus', 'hibernis', 'gladios') — NOT a CLTK lemma
+    stem. Whitaker's is a morphological parser: it expects inflected
+    forms and resolves the headword internally. Passing it a bare stem
+    like 'langu' will simply fail to match anything.
+
+    Whitaker's commonly returns MULTIPLE candidate analyses for one
+    inflected form — different headwords that happen to share a surface
+    form, or different senses of the same headword (see module
+    docstring for the 'hibernis' example). We collect every analysis
+    that has at least one sense, then pick the single most frequent one
+    using Whitaker's own Frequency metadata, rather than whichever
+    analysis happens to come first in dict iteration order.
+    """
     try:
         parser = _get_parser()
         if parser is None:
             return None
+
         result = parser.parse(word.lower().strip())
+
+        candidates: list[tuple[int, Entry]] = []
         for form in result.forms:
             for analysis in form.analyses.values():
                 lexeme = analysis.lexeme
                 senses = lexeme.senses
                 if not senses:
-                    continue
+                    continue  # no gloss to show; skip this analysis entirely
+
                 pos = lexeme.wordType.value if lexeme.wordType else ""
                 roots = lexeme.roots
-                lemma = roots[0] if roots else word
-                return Entry(
-                    lemma=lemma,
-                    part_of_speech=pos,
-                    short_def=senses[0],
-                )
+
+                # Prefer a fully reconstructed dictionary headword
+                # ('gladius, -i, m.', 'cado, cadere, cecidi, casus')
+                # over the bare Whitaker's stem. Falls back to the
+                # stem itself when reconstruction isn't confident
+                # (see morphology.py for exactly what is/isn't covered).
+                lemma = reconstruct_headword(lexeme)
+                if lemma is None:
+                    lemma = roots[0] if roots else word
+
+                rank = _frequency_rank(getattr(lexeme, "parsed_props", None), senses)
+                candidates.append((
+                    rank,
+                    Entry(lemma=lemma, part_of_speech=pos, short_def=senses[0]),
+                ))
+
+        if not candidates:
+            return None
+
+        # Lowest rank number = most frequent = best candidate.
+        candidates.sort(key=lambda pair: pair[0])
+        return candidates[0][1]
+
     except Exception as exc:
         log.debug("Whitaker lookup failed for '%s': %s", word, exc)
     return None
@@ -204,7 +327,15 @@ def _extract_short_def(senses) -> str:
 
 
 def _lookup_latin_ls(word: str) -> Entry | None:
-    """Fallback Latin lookup via Lewis-Short JSON."""
+    """
+    Fallback Latin lookup via Lewis-Short JSON.
+
+    `word` here should be a proper dictionary headword — ideally the
+    headword Whitaker's would have used if it had a result (e.g.
+    'langueo', not 'langu'). Lewis-Short is a plain dictionary keyed on
+    real headwords; it does no morphological analysis, so handing it a
+    bare CLTK stem will rarely match.
+    """
     word_lower = word.lower().strip()
     if not word_lower:
         return None
@@ -232,16 +363,41 @@ def _lookup_latin_ls(word: str) -> Entry | None:
     return None
 
 
-def _lookup_latin(word: str) -> Entry | None:
+def _lookup_latin(token: str, cltk_lemma: str | None = None) -> Entry | None:
     """
     Two-tier Latin lookup:
-      1. Whitaker's Words — clean, pedagogically appropriate glosses
-      2. Lewis-Short — fallback for words Whitaker's doesn't cover
+      1. Whitaker's Words, queried with the ORIGINAL INFLECTED TOKEN —
+         clean, pedagogically appropriate glosses, frequency-ranked.
+      2. Lewis-Short, queried with whatever headword we have at this
+         point — fallback for words Whitaker's doesn't cover at all.
+
+    Args:
+        token:      The original inflected word form from the text.
+        cltk_lemma: CLTK's lemma for this token, if available. Used only
+                    as a last-resort Lewis-Short key if Whitaker's fails
+                    AND a direct Lewis-Short lookup on the raw token also
+                    fails. CLTK lemmas are sometimes bare stems
+                    ('langu') rather than full headwords ('langueo'), so
+                    this is intentionally the lowest-priority strategy.
     """
-    entry = _lookup_latin_whitaker(word)
+    entry = _lookup_latin_whitaker(token)
     if entry is not None:
         return entry
-    return _lookup_latin_ls(word)
+
+    # Whitaker's found nothing for the inflected form. Try Lewis-Short
+    # directly on the raw token first (it occasionally matches an
+    # uninflected headword as-is, e.g. an indeclinable word).
+    entry = _lookup_latin_ls(token)
+    if entry is not None:
+        return entry
+
+    # Last resort: try the CLTK lemma against Lewis-Short. This will
+    # often fail (CLTK lemmas are frequently bare stems, not headwords),
+    # but it's better than returning nothing.
+    if cltk_lemma and cltk_lemma != token:
+        return _lookup_latin_ls(cltk_lemma)
+
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -284,7 +440,17 @@ def _load_ml() -> dict[str, dict]:
 
 
 def _lookup_greek(word: str) -> Entry | None:
-    """Look up an Ancient Greek word in the Middle Liddell."""
+    """
+    Look up an Ancient Greek word in the Middle Liddell.
+
+    NOTE: unlike Whitaker's, the Middle Liddell index here is a plain
+    dictionary keyed on headwords — there is no morphological parser
+    backing it. This means Greek lookups DO depend on CLTK's lemma
+    being a real headword (accents and all) rather than a bare stem.
+    This is a known limitation of the Greek pipeline distinct from the
+    Latin coverage bug; see the corpus.py debugging thread for the
+    Tesserae/catalog side of Greek support.
+    """
     if not word:
         return None
     index = _load_ml()
@@ -307,38 +473,54 @@ def _lookup_greek(word: str) -> Entry | None:
 # Public interface
 # ---------------------------------------------------------------------------
 
-def lookup(word: str, language: str) -> Entry | None:
+def lookup(token: str, language: str, cltk_lemma: str | None = None) -> Entry | None:
     """
-    Look up a single lemma and return an Entry, or None if not found.
+    Look up a single word and return an Entry, or None if not found.
 
     Args:
-        word:     The lemma to look up (should already be lemmatised).
-        language: 'latin' or 'greek' (or Tesserae codes 'la'/'grc')
+        token:      The ORIGINAL INFLECTED TOKEN as it appears in the
+                    text (e.g. 'languentibus', not 'langu'). For Latin,
+                    Whitaker's Words needs this to do its own
+                    morphological analysis correctly.
+        language:   'latin' or 'greek' (or Tesserae codes 'la'/'grc')
+        cltk_lemma: Optional CLTK lemma for this token, used only as a
+                    last-resort Lewis-Short key for Latin (see
+                    _lookup_latin). Ignored for Greek.
     """
     lang = {"la": "latin", "grc": "greek"}.get(language, language)
     if lang == "latin":
-        return _lookup_latin(word)
+        return _lookup_latin(token, cltk_lemma=cltk_lemma)
     elif lang == "greek":
-        return _lookup_greek(word)
+        return _lookup_greek(token)
     else:
         raise ValueError(f"Unknown language '{language}'. Use 'latin' or 'greek'.")
 
 
 def lookup_batch(
-    words: list[str],
+    tokens: list[str],
     language: str,
+    cltk_lemmas: dict[str, str] | None = None,
     progress_callback=None,
 ) -> dict[str, Entry]:
     """
-    Look up a list of lemmas. Returns dict of lemma → Entry.
-    Words with no result are silently skipped.
+    Look up a list of original inflected tokens. Returns dict of
+    token → Entry. Words with no result are silently skipped.
+
+    Args:
+        tokens:      Original inflected tokens from the text (NOT CLTK
+                     lemma stems — see module docstring).
+        language:    'latin' or 'greek'
+        cltk_lemmas: Optional dict mapping token → CLTK lemma, used as a
+                     last-resort Lewis-Short fallback key for Latin.
+        progress_callback: Called with (current, total).
     """
     results = {}
-    total = len(words)
-    for i, word in enumerate(words):
+    total = len(tokens)
+    cltk_lemmas = cltk_lemmas or {}
+    for i, token in enumerate(tokens):
         if progress_callback:
             progress_callback(i + 1, total)
-        entry = lookup(word, language)
+        entry = lookup(token, language, cltk_lemma=cltk_lemmas.get(token))
         if entry:
-            results[word] = entry
+            results[token] = entry
     return results
