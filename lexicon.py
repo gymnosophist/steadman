@@ -9,7 +9,7 @@ Latin strategy (two-tier):
      cached locally in platformdirs cache dir.
 
 Greek strategy:
-  Middle Liddell JSON from PerseusDL/lexica, cached locally.
+  LSJ9 short-definitions JSON from ciscoriordan/lsj9, cached locally.
 
 ---------------------------------------------------------------------------
 IMPORTANT: lookup() takes the ORIGINAL INFLECTED TOKEN, not a CLTK lemma.
@@ -39,6 +39,7 @@ from __future__ import annotations
 import json
 import logging
 import re
+import unicodedata
 from pathlib import Path
 from dataclasses import dataclass
 
@@ -57,17 +58,14 @@ CACHE_DIR = Path(user_cache_dir("steadman")) / "lexica"
 CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 # ---------------------------------------------------------------------------
-# Remote sources (Lewis-Short + Middle Liddell)
+# Remote sources (Lewis-Short + LSJ9)
 # ---------------------------------------------------------------------------
 
 LS_BASE = (
     "https://raw.githubusercontent.com/IohannesArnold/lewis-short-json/master/ls_{letter}.json"
 )
 
-ML_URL = (
-    "https://raw.githubusercontent.com/PerseusDL/lexica/master/CTS_XML_TEI/perseus/"
-    "pdllex/grc/ls/grc.ls.perseus-eng1.json"
-)
+LSJ_URL = "https://raw.githubusercontent.com/ciscoriordan/lsj9/main/lsj9_short_defs.json"
 
 # ---------------------------------------------------------------------------
 # Whitaker's frequency ranking
@@ -401,72 +399,136 @@ def _lookup_latin(token: str, cltk_lemma: str | None = None) -> Entry | None:
 
 
 # ---------------------------------------------------------------------------
-# Middle Liddell (Greek)
+# LSJ9 (Greek)
 # ---------------------------------------------------------------------------
 
-_ml_index: dict[str, dict] | None = None
+_ml_index: dict[str, str] | None = None
+_ml_stripped_index: dict[str, list[str]] | None = None
+
+# ---------------------------------------------------------------------------
+# lsj9 known-bad extractions
+#
+# lsj9's short_defs extraction sometimes grabs a stranded dialect/grammar
+# note instead of skipping past it to the actual gloss -- e.g.
+# lsj["πολύς"] == "Att. gen. dat" rather than "much, many". This shows up
+# disproportionately on irregular, high-frequency words, where the LSJ
+# entry head is a paragraph of principal-parts/dialect notes before the
+# first sense. Reported upstream (ciscoriordan/lsj9); until that's fixed:
+#
+#   1. _GREEK_OVERRIDES hand-corrects the handful of extremely common
+#      words that will appear on nearly every page, so they don't
+#      silently mislead a reader.
+#   2. _looks_like_stranded_note() is a defensive floor for everything
+#      else: it can't guess the correct gloss, so it only ever turns a
+#      confidently-wrong entry into a missing one, never the reverse.
+#      This is NOT comprehensive -- some corrupted entries (e.g. ταχύς,
+#      μέλας) don't match this pattern and will still slip through.
+# ---------------------------------------------------------------------------
+
+_GREEK_OVERRIDES: dict[str, str] = {
+    "πολύς": "much, many",
+    "μέγας": "great, large",
+    "πᾶς": "all, every, whole",
+    "εἷς": "one",
+    "ἀγαθός": "good",
+    "ἄγω": "lead, carry, bring, drive",
+}
+
+_STRANDED_NOTE_RE = re.compile(
+    r"^(Att|Ion|Dor|Ep|Aeol|Boeot|Lacon|contr|irreg|collat)\.",
+)
 
 
-def _load_ml() -> dict[str, dict]:
-    """Load Middle Liddell JSON, using disk cache."""
-    global _ml_index
-    if _ml_index is not None:
-        return _ml_index
+def _looks_like_stranded_note(gloss: str) -> bool:
+    """True if `gloss` looks like a leftover dialect/grammar fragment
+    rather than an actual English definition (see module notes above)."""
+    text = gloss.strip()
+    if not text:
+        return True
+    if _STRANDED_NOTE_RE.match(text):
+        return True
+    return False
 
-    disk_path = CACHE_DIR / "middle_liddell.json"
+
+def _strip_accents(word: str) -> str:
+    """Reduce a polytonic Greek word to its bare letters, dropping accents,
+    breathings, and iota subscripts. Used as a fallback match when a CLTK
+    lemma's accentuation doesn't exactly match an LSJ9 headword's (e.g.
+    recessive-accent citation forms, enclitic contexts, edition
+    differences)."""
+    decomposed = unicodedata.normalize("NFD", word)
+    return "".join(ch for ch in decomposed if unicodedata.category(ch) != "Mn")
+
+
+def _load_ml() -> tuple[dict[str, str], dict[str, list[str]]]:
+    """Load LSJ9 short-definitions, using disk cache. Returns
+    (exact_index, stripped_index) where exact_index maps accented
+    headword -> gloss, and stripped_index maps accent-stripped headword
+    -> list of accented headwords (for fallback matching)."""
+    global _ml_index, _ml_stripped_index
+    if _ml_index is not None and _ml_stripped_index is not None:
+        return _ml_index, _ml_stripped_index
+
+    disk_path = CACHE_DIR / "lsj9_short_defs.json"
 
     if disk_path.exists():
         raw = json.loads(disk_path.read_text(encoding="utf-8"))
     else:
-        log.debug("Downloading Middle Liddell from GitHub...")
+        log.debug("Downloading LSJ9 from GitHub...")
         try:
-            resp = requests.get(ML_URL, timeout=30)
+            resp = requests.get(LSJ_URL, timeout=30)
             resp.raise_for_status()
             raw = resp.json()
-            disk_path.write_text(json.dumps(raw), encoding="utf-8")
+            disk_path.write_text(json.dumps(raw, ensure_ascii=False), encoding="utf-8")
         except requests.RequestException as exc:
-            log.warning("Could not download Middle Liddell: %s", exc)
-            _ml_index = {}
-            return _ml_index
+            log.warning("Could not download LSJ9: %s", exc)
+            _ml_index, _ml_stripped_index = {}, {}
+            return _ml_index, _ml_stripped_index
 
-    entries = raw if isinstance(raw, list) else raw.get("entries", [])
-    index = {}
-    for entry in entries:
-        key = entry.get("key", entry.get("hdwd", "")).strip()
-        if key:
-            index[key] = entry
-    _ml_index = index
-    return _ml_index
+    stripped_index: dict[str, list[str]] = {}
+    for headword in raw:
+        stripped_index.setdefault(_strip_accents(headword), []).append(headword)
+
+    _ml_index, _ml_stripped_index = raw, stripped_index
+    return _ml_index, _ml_stripped_index
 
 
-def _lookup_greek(word: str) -> Entry | None:
+def _lookup_greek(token: str, cltk_lemma: str | None = None) -> Entry | None:
     """
-    Look up an Ancient Greek word in the Middle Liddell.
+    Look up an Ancient Greek word in LSJ9.
 
-    NOTE: unlike Whitaker's, the Middle Liddell index here is a plain
-    dictionary keyed on headwords — there is no morphological parser
-    backing it. This means Greek lookups DO depend on CLTK's lemma
-    being a real headword (accents and all) rather than a bare stem.
-    This is a known limitation of the Greek pipeline distinct from the
-    Latin coverage bug; see the corpus.py debugging thread for the
-    Tesserae/catalog side of Greek support.
+    Unlike Whitaker's, LSJ9 headwords are already dictionary citation
+    forms rather than something a parser reconstructs — so cltk_lemma is
+    tried FIRST here (it's usually closer to a real headword than the
+    raw inflected token), with the raw token as a second exact-match
+    attempt, then both are retried with accents stripped before giving
+    up.
     """
-    if not word:
+    lsj, stripped_index = _load_ml()
+    if not lsj:
         return None
-    index = _load_ml()
-    entry = index.get(word.strip())
-    if not entry:
-        return None
-    short_def = _extract_short_def(entry.get("senses", []))
-    if not short_def:
-        short_def = entry.get("meaning", "")[:120]
-    if not short_def:
-        return None
-    return Entry(
-        lemma=entry.get("key", word),
-        part_of_speech=entry.get("part_of_speech", ""),
-        short_def=short_def,
-    )
+
+    candidates = [c.strip() for c in (cltk_lemma, token) if c]
+
+    for candidate in candidates:
+        override = _GREEK_OVERRIDES.get(candidate)
+        if override:
+            return Entry(lemma=candidate, short_def=override)
+
+    for candidate in candidates:
+        gloss = lsj.get(candidate)
+        if gloss and not _looks_like_stranded_note(gloss):
+            return Entry(lemma=candidate, short_def=gloss[:120])
+
+    for candidate in candidates:
+        matches = stripped_index.get(_strip_accents(candidate))
+        if matches:
+            headword = matches[0]
+            gloss = lsj[headword]
+            if not _looks_like_stranded_note(gloss):
+                return Entry(lemma=headword, short_def=gloss[:120])
+
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -483,15 +545,17 @@ def lookup(token: str, language: str, cltk_lemma: str | None = None) -> Entry | 
                     Whitaker's Words needs this to do its own
                     morphological analysis correctly.
         language:   'latin' or 'greek' (or Tesserae codes 'la'/'grc')
-        cltk_lemma: Optional CLTK lemma for this token, used only as a
-                    last-resort Lewis-Short key for Latin (see
-                    _lookup_latin). Ignored for Greek.
+        cltk_lemma: Optional CLTK lemma for this token. For Latin, used
+                    only as a last-resort Lewis-Short key (see
+                    _lookup_latin). For Greek, tried FIRST against LSJ9,
+                    since LSJ9 headwords are citation forms and the CLTK
+                    lemma is usually closer to one than the raw token is.
     """
     lang = {"la": "latin", "grc": "greek"}.get(language, language)
     if lang == "latin":
         return _lookup_latin(token, cltk_lemma=cltk_lemma)
     elif lang == "greek":
-        return _lookup_greek(token)
+        return _lookup_greek(token, cltk_lemma=cltk_lemma)
     else:
         raise ValueError(f"Unknown language '{language}'. Use 'latin' or 'greek'.")
 
