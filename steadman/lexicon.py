@@ -40,13 +40,13 @@ import json
 import logging
 import re
 import unicodedata
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 
 import requests
 from platformdirs import user_cache_dir
 
-from .morphology import reconstruct_headword # edited to relative import 
+from .morphology import reconstruct_headword
 
 log = logging.getLogger(__name__)
 
@@ -55,7 +55,6 @@ log = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 CACHE_DIR = Path(user_cache_dir("steadman")) / "lexica"
-CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 # ---------------------------------------------------------------------------
 # Remote sources (Lewis-Short + LSJ9)
@@ -133,6 +132,7 @@ def _frequency_rank(
 # Entry dataclass
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class Entry:
     """
@@ -142,6 +142,7 @@ class Entry:
     part_of_speech — brief label (e.g. 'Noun', 'Verb')
     short_def      — one-line gloss for the facing vocabulary column
     """
+
     lemma: str
     part_of_speech: str = ""
     short_def: str = ""
@@ -169,6 +170,7 @@ def _get_parser():
     if _whitaker_parser is None:
         try:
             from whitakers_words.parser import Parser
+
             _whitaker_parser = Parser()
         except ImportError:
             log.warning(
@@ -225,10 +227,12 @@ def _lookup_latin_whitaker(word: str) -> Entry | None:
                     lemma = roots[0] if roots else word
 
                 rank = _frequency_rank(getattr(lexeme, "parsed_props", None), senses)
-                candidates.append((
-                    rank,
-                    Entry(lemma=lemma, part_of_speech=pos, short_def=senses[0]),
-                ))
+                candidates.append(
+                    (
+                        rank,
+                        Entry(lemma=lemma, part_of_speech=pos, short_def=senses[0]),
+                    )
+                )
 
         if not candidates:
             return None
@@ -269,6 +273,7 @@ def _load_ls_letter(letter: str) -> list[dict]:
             resp = requests.get(url, timeout=15)
             resp.raise_for_status()
             data = resp.json()
+            CACHE_DIR.mkdir(parents=True, exist_ok=True)
             disk_path.write_text(json.dumps(data), encoding="utf-8")
         except requests.RequestException as exc:
             log.warning("Could not download LS_%s: %s", letter, exc)
@@ -479,6 +484,7 @@ def _load_ml() -> tuple[dict[str, str], dict[str, list[str]]]:
             resp = requests.get(LSJ_URL, timeout=30)
             resp.raise_for_status()
             raw = resp.json()
+            CACHE_DIR.mkdir(parents=True, exist_ok=True)
             disk_path.write_text(json.dumps(raw, ensure_ascii=False), encoding="utf-8")
         except requests.RequestException as exc:
             log.warning("Could not download LSJ9: %s", exc)
@@ -534,6 +540,7 @@ def _lookup_greek(token: str, cltk_lemma: str | None = None) -> Entry | None:
 # ---------------------------------------------------------------------------
 # Public interface
 # ---------------------------------------------------------------------------
+
 
 def lookup(token: str, language: str, cltk_lemma: str | None = None) -> Entry | None:
     """

@@ -51,3 +51,14 @@ htmlcov/
 
 # Type checker
 .mypy_cache/
+
+# Local verification and generated artifacts
+.ruff_cache/
+output/
+tmp/
+*.bak
+# Preserve reviewed historical backups in the audit archive.
+!docs/archive/*.bak
+
+# Inactive outer Git metadata retained locally after consolidation
+.local-archive/

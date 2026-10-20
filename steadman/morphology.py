@@ -41,7 +41,6 @@ for how these were derived empirically):
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass
 
 log = logging.getLogger(__name__)
 
@@ -63,8 +62,8 @@ _NOUN_GENDER_LABEL = {
     "M": "m.",
     "F": "f.",
     "N": "n.",
-    "C": "c.",   # common gender (e.g. dies, sacerdos)
-    "X": "",     # unknown/unspecified — omit rather than guess
+    "C": "c.",  # common gender (e.g. dies, sacerdos)
+    "X": "",  # unknown/unspecified — omit rather than guess
 }
 
 # (declension, subtype) -> genitive singular suffix to append to the stem.
@@ -85,19 +84,19 @@ _NOUN_GENDER_LABEL = {
 # stem instead — exactly the pre-existing behaviour, just for a smaller
 # slice of words than before this module existed.
 _NOUN_GEN_SG_SUFFIX = {
-    (1, 1): "ae",      # rosa, -ae
-    (2, 1): "i",        # dominus, -i
-    (2, 2): "i",        # bellum, -i (neuter 2nd, same genitive)
-    (2, 3): "i",        # puer, ager, vir, -i
-    (2, 4): "i",        # gladius, exitium, -i (-ius/-ium stems)
-    (2, 5): "i",        # filius and other -ius nouns with this subtype code
-    (3, 1): "is",       # rex, miles, civitas, sol, -is (consonant stem)
-    (3, 2): "is",       # corpus, tempus, nomen, alumen, -is (neuter consonant stem)
-    (3, 3): "is",       # navis, urbs, fames, -is (i-stem M/F)
-    (3, 4): "is",       # mare, animal, cochlear, -is (neuter i-stem)
-    (4, 1): "us",       # manus, exercitus, exitus, -us
-    (4, 2): "us",       # genu, cornu, -us (neuter 4th)
-    (5, 1): "ei",       # res, -ei
+    (1, 1): "ae",  # rosa, -ae
+    (2, 1): "i",  # dominus, -i
+    (2, 2): "i",  # bellum, -i (neuter 2nd, same genitive)
+    (2, 3): "i",  # puer, ager, vir, -i
+    (2, 4): "i",  # gladius, exitium, -i (-ius/-ium stems)
+    (2, 5): "i",  # filius and other -ius nouns with this subtype code
+    (3, 1): "is",  # rex, miles, civitas, sol, -is (consonant stem)
+    (3, 2): "is",  # corpus, tempus, nomen, alumen, -is (neuter consonant stem)
+    (3, 3): "is",  # navis, urbs, fames, -is (i-stem M/F)
+    (3, 4): "is",  # mare, animal, cochlear, -is (neuter i-stem)
+    (4, 1): "us",  # manus, exercitus, exitus, -us
+    (4, 2): "us",  # genu, cornu, -us (neuter 4th)
+    (5, 1): "ei",  # res, -ei
 }
 
 
@@ -156,10 +155,6 @@ def _format_noun(lexeme) -> str | None:
     else:
         return None  # unknown declension number — don't guess
 
-    # Oblique stem for the genitive suffix: roots[1] if present and
-    # different from roots[0], else fall back to roots[0].
-    oblique = roots[1] if len(roots) > 1 and roots[1] not in ("", "-") else roots[0]
-
     parts = [nominative, f"-{gen_suffix}"]
     headword = ", ".join(parts)
     if gender_label:
@@ -184,19 +179,19 @@ def _format_noun(lexeme) -> str | None:
 
 # (conjugation, subtype) -> (pres_1sg_suffix, pres_inf_suffix)
 _VERB_PRESENT_ENDINGS = {
-    (1, 1): ("o", "are"),         # amo, amare
-    (2, 1): ("eo", "ere"),         # moneo, monere
-    (3, 1): ("o", "ere"),          # rego, regere
-    (3, 4): ("io", "ere"),         # capio, capere (3rd -io verbs)
-    (4, 1): ("io", "ire"),         # audio, audire
+    (1, 1): ("o", "are"),  # amo, amare
+    (2, 1): ("eo", "ere"),  # moneo, monere
+    (3, 1): ("o", "ere"),  # rego, regere
+    (3, 4): ("io", "ere"),  # capio, capere (3rd -io verbs)
+    (4, 1): ("io", "ire"),  # audio, audire
 }
 
 _DEPONENT_PRESENT_ENDINGS = {
-    (1, 1): ("or", "ari"),         # hortor, hortari
-    (2, 1): ("eor", "eri"),        # vereor, vereri
-    (3, 1): ("or", "i"),           # loquor, loqui
-    (3, 4): ("ior", "i"),          # patior, pati
-    (4, 1): ("ior", "iri"),        # partior, partiri
+    (1, 1): ("or", "ari"),  # hortor, hortari
+    (2, 1): ("eor", "eri"),  # vereor, vereri
+    (3, 1): ("or", "i"),  # loquor, loqui
+    (3, 4): ("ior", "i"),  # patior, pati
+    (4, 1): ("ior", "iri"),  # partior, partiri
 }
 
 
@@ -275,15 +270,15 @@ def _format_verb(lexeme) -> str | None:
 # ---------------------------------------------------------------------------
 
 _IRREGULAR_VERBS = {
-    "s":      "sum, esse, fui, futurus",       # Whitaker's stem for sum is 's'
-    "poss":   "possum, posse, potui",
-    "e":      "eo, ire, ii, itus",
-    "fer":    "fero, ferre, tuli, latus",
-    "vol":    "volo, velle, volui",
-    "nol":    "nolo, nolle, nolui",
-    "mal":    "malo, malle, malui",
-    "fi":     "fio, fieri, factus sum",
-    "ed":     "edo, esse, edi, esus",
+    "s": "sum, esse, fui, futurus",  # Whitaker's stem for sum is 's'
+    "poss": "possum, posse, potui",
+    "e": "eo, ire, ii, itus",
+    "fer": "fero, ferre, tuli, latus",
+    "vol": "volo, velle, volui",
+    "nol": "nolo, nolle, nolui",
+    "mal": "malo, malle, malui",
+    "fi": "fio, fieri, factus sum",
+    "ed": "edo, esse, edi, esus",
 }
 
 
@@ -309,6 +304,7 @@ _IRREGULAR_VERBS = {
 # empirically the same way as the noun/verb tables (see lexicon.py's
 # investigation notes for the methodology).
 # ---------------------------------------------------------------------------
+
 
 def _format_adjective(lexeme) -> str | None:
     category = list(getattr(lexeme, "category", []) or [])
@@ -358,7 +354,6 @@ def _format_adjective(lexeme) -> str | None:
     return None  # unrecognised declension/subtype — don't guess
 
 
-
 # A handful of the most common irregular verbs — most importantly the
 # copula 'sum' itself — are stored by Whitaker's with roots = [] : no
 # stem at all, just a special-cased lexeme. This makes sense
@@ -375,10 +370,11 @@ def _format_adjective(lexeme) -> str | None:
 # ---------------------------------------------------------------------------
 
 _ROOTLESS_VERB_SENSES = {
-    ("to be, exist", "also used to form verb perfect passive tenses with NOM PERF PPL"):
-        "sum, esse, fui, futurus",
-    ("be", "willing;", "wish;"):
-        "volo, velle, volui",
+    (
+        "to be, exist",
+        "also used to form verb perfect passive tenses with NOM PERF PPL",
+    ): "sum, esse, fui, futurus",
+    ("be", "willing;", "wish;"): "volo, velle, volui",
 }
 
 
@@ -396,6 +392,7 @@ def _check_rootless_irregular(lexeme) -> str | None:
 # ---------------------------------------------------------------------------
 # Public interface
 # ---------------------------------------------------------------------------
+
 
 def reconstruct_headword(lexeme) -> str | None:
     """

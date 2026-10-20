@@ -28,12 +28,15 @@ import logging
 import sys
 from pathlib import Path
 
+from .collation import alphabetical_key
+
 log = logging.getLogger(__name__)
 
 
 # ---------------------------------------------------------------------------
 # ANSI colour helpers (degrade gracefully on Windows without colorama)
 # ---------------------------------------------------------------------------
+
 
 def _c(text: str, code: str) -> str:
     """Wrap text in ANSI colour code if stdout is a tty."""
@@ -42,16 +45,30 @@ def _c(text: str, code: str) -> str:
     return text
 
 
-def bold(t): return _c(t, "1")
-def cyan(t): return _c(t, "36")
-def green(t): return _c(t, "32")
-def yellow(t): return _c(t, "33")
-def red(t): return _c(t, "31")
+def bold(t):
+    return _c(t, "1")
+
+
+def cyan(t):
+    return _c(t, "36")
+
+
+def green(t):
+    return _c(t, "32")
+
+
+def yellow(t):
+    return _c(t, "33")
+
+
+def red(t):
+    return _c(t, "31")
 
 
 # ---------------------------------------------------------------------------
 # Menu helpers
 # ---------------------------------------------------------------------------
+
 
 def paginated_menu(
     items: list,
@@ -90,11 +107,10 @@ def paginated_menu(
         for i, item in enumerate(page_items, start=start + 1):
             print(f"  {cyan(str(i).rjust(3))}.  {display_fn(item)}")
         print(f"  {'─' * 50}")
-        print(f"  {yellow('n')} = next page   {yellow('p')} = prev page   "
-              f"{yellow('q')} = quit")
+        print(f"  {yellow('n')} = next page   {yellow('p')} = prev page   {yellow('q')} = quit")
         print()
 
-        raw = input(f"  Enter number or command: ").strip().lower()
+        raw = input("  Enter number or command: ").strip().lower()
 
         if raw == "q":
             print(yellow("Exiting."))
@@ -140,6 +156,7 @@ def ask(prompt: str, default: str = "", choices: list[str] | None = None) -> str
 # Progress bar
 # ---------------------------------------------------------------------------
 
+
 def progress_bar(current: int, total: int, label: str = "", width: int = 40) -> None:
     """
     Print an in-place progress bar.
@@ -167,6 +184,14 @@ def progress_bar(current: int, total: int, label: str = "", width: int = 40) -> 
 # Argument parser
 # ---------------------------------------------------------------------------
 
+
+def positive_int(value: str) -> int:
+    number = int(value)
+    if number <= 0:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return number
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
         prog="steadman",
@@ -189,35 +214,40 @@ Examples:
     )
 
     p.add_argument(
-        "--language", "-l",
+        "--language",
+        "-l",
         choices=["latin", "greek"],
         help="Filter catalog to this language (default: show both, then ask)",
     )
     p.add_argument(
-        "--text", "-t",
+        "--text",
+        "-t",
         metavar="QUERY",
         help="Text to search for (author or title fragment). "
-             "If multiple matches, an interactive menu is shown.",
+        "If multiple matches, an interactive menu is shown.",
     )
     p.add_argument(
-        "--format", "-f",
+        "--format",
+        "-f",
         choices=["prose", "poetry"],
         default=None,
         help="Chunking mode: prose (by word count) or poetry (by line). "
-             "Default: ask interactively.",
+        "Default: ask interactively.",
     )
     p.add_argument(
-        "--output", "-o",
+        "--output",
+        "-o",
         metavar="FILE",
         help="Output PDF path. Default: '<author>_<title>.pdf' in current directory.",
     )
     p.add_argument(
-        "--threshold", "-n",
-        type=int,
-        default=10,
+        "--threshold",
+        "-n",
+        type=positive_int,
+        default=None,
         metavar="N",
         help="Exclude words that appear >= N times in the text (default: 10). "
-             "Lower = more vocabulary shown. Higher = only rare words.",
+        "Lower = fewer words shown. Higher = more vocabulary.",
     )
     p.add_argument(
         "--page-size",
@@ -227,13 +257,14 @@ Examples:
     )
     p.add_argument(
         "--chunk-size",
-        type=int,
+        type=positive_int,
         default=None,
         help="Lines per page for poetry (default: 20), "
-             "words per page for prose (default: 150). Override here.",
+        "words per page for prose (default: 150). Override here.",
     )
     p.add_argument(
-        "--verbose", "-v",
+        "--verbose",
+        "-v",
         action="store_true",
         help="Enable verbose logging for debugging.",
     )
@@ -244,6 +275,7 @@ Examples:
 # ---------------------------------------------------------------------------
 # Main entry point
 # ---------------------------------------------------------------------------
+
 
 def run(args: argparse.Namespace) -> None:
     """
@@ -259,7 +291,7 @@ def run(args: argparse.Namespace) -> None:
       7. Per-chunk: get page vocab, look up definitions
       8. Render PDF
     """
-    from steadman import corpus, nlp, lexicon, render
+    from steadman import corpus, lexicon, nlp, render
 
     # ── 1. Language ──────────────────────────────────────────────────────
     language = args.language
@@ -283,10 +315,7 @@ def run(args: argparse.Namespace) -> None:
 
     if args.text:
         query = args.text.lower()
-        matches = [
-            w for w in catalog
-            if query in w.author.lower() or query in w.title.lower()
-        ]
+        matches = [w for w in catalog if query in w.author.lower() or query in w.title.lower()]
         if not matches:
             print(red(f"\n  No texts matching '{args.text}'. Showing full catalog."))
             matches = catalog
@@ -339,11 +368,13 @@ def run(args: argparse.Namespace) -> None:
         sys.exit(1)
 
     if not lines:
-        print(red(
-            f"\n  Error: no text lines were returned for '{selected_work.display()}'.\n"
-            f"  The file may exist in the Tesserae repo but contain no parseable content.\n"
-            f"  Try a different text, or check the .tess file format manually."
-        ))
+        print(
+            red(
+                f"\n  Error: no text lines were returned for '{selected_work.display()}'.\n"
+                f"  The file may exist in the Tesserae repo but contain no parseable content.\n"
+                f"  Try a different text, or check the .tess file format manually."
+            )
+        )
         sys.exit(1)
 
     print(f" {green('done.')} ({len(lines)} lines)")
@@ -357,11 +388,12 @@ def run(args: argparse.Namespace) -> None:
     # For partial works (a single book), the whole-text frequency counts
     # are lower simply because there's less text — drop the threshold so
     # we don't exclude too many words.
-    threshold = args.threshold
-    if selected_work.part_num and args.threshold == 10:
+    threshold = args.threshold if args.threshold is not None else 10
+    if selected_work.part_num and args.threshold is None:
         threshold = 3
-        print(f"  (Using frequency threshold={threshold} for partial text; "
-              f"override with --threshold)")
+        print(
+            f"  (Using frequency threshold={threshold} for partial text; override with --threshold)"
+        )
 
     # build_vocab_list returns (vocab_list, token_map):
     #   vocab_list  — sorted list of unique lemmas that passed the threshold
@@ -375,8 +407,10 @@ def run(args: argparse.Namespace) -> None:
         exclude_threshold=threshold,
         progress_callback=vocab_progress,
     )
-    print(f"  {len(vocab_list)} vocabulary items selected "
-          f"({len(token_map)} with representative tokens).")
+    print(
+        f"  {len(vocab_list)} vocabulary items selected "
+        f"({len(token_map)} with representative tokens)."
+    )
 
     # ── 8. Chunk and look up definitions ─────────────────────────────────
     chunks = list(corpus.chunk_lines(lines, chunk_size=chunk_size, mode=fmt))
@@ -411,12 +445,9 @@ def run(args: argparse.Namespace) -> None:
         # display entries alphabetically by dictionary headword.
         # Entry.lemma is the reconstructed citation form ('gladius, -i, m.')
         # after the morphology.py changes, so it's already display-ready.
-        entries_by_lemma = {
-            entry.lemma: entry
-            for entry in entries.values()
-        }
+        entries_by_lemma = {entry.lemma: entry for entry in entries.values()}
         vocab_by_chunk.append(entries_by_lemma)
-        lemma_order_by_chunk.append(sorted(entries_by_lemma.keys()))
+        lemma_order_by_chunk.append(sorted(entries_by_lemma, key=alphabetical_key))
 
     # ── 9. Render PDF ────────────────────────────────────────────────────
     print(f"\n  {cyan('Rendering PDF...')}", end="", flush=True)

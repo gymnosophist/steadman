@@ -1,0 +1,528 @@
+{
+  "schema_version": 1,
+  "artifacts": [
+    {
+      "path": "steadman/fonts/Gentium-Bold.ttf",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "bundled font asset; original font metadata preserved",
+      "bytes": 976776,
+      "sha256": "320bcd72a657882adc28a0710affc0314583e7ec1d57c320e61f7c8dd6fd1068"
+    },
+    {
+      "path": "steadman/fonts/Gentium-BoldItalic.ttf",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "bundled font asset; original font metadata preserved",
+      "bytes": 1048728,
+      "sha256": "edf7f152acf6e069636929a1d2930e028ef7691f9f6e2ec2c9e3202ab34764e8"
+    },
+    {
+      "path": "steadman/fonts/Gentium-ExtraBold.ttf",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "bundled font asset; original font metadata preserved",
+      "bytes": 979264,
+      "sha256": "93188b6221d6993e1455dac6a26cf4f50472b7e67eb92ee89b6fbd50b4ad43af"
+    },
+    {
+      "path": "steadman/fonts/Gentium-ExtraBoldItalic.ttf",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "bundled font asset; original font metadata preserved",
+      "bytes": 1051256,
+      "sha256": "1f83c5d124fcce5eed0298dfa4ab379245cb419560227caf544569e220bf4c08"
+    },
+    {
+      "path": "steadman/fonts/Gentium-Italic.ttf",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "bundled font asset; original font metadata preserved",
+      "bytes": 1028636,
+      "sha256": "577a66d859a9f1219898d8b44662d2bf26658d80d549cc03d33b5f6f244d5188"
+    },
+    {
+      "path": "steadman/fonts/Gentium-Medium.ttf",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "bundled font asset; original font metadata preserved",
+      "bytes": 965936,
+      "sha256": "658ba723e1e76345b5397fabe73456fe65147e7da1ba4aa5751b956ebaf519e4"
+    },
+    {
+      "path": "steadman/fonts/Gentium-MediumItalic.ttf",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "bundled font asset; original font metadata preserved",
+      "bytes": 1037552,
+      "sha256": "a24a038c5c277c908b2444c6fdab78085d4372cf59791c34ca2bbe058f2689cb"
+    },
+    {
+      "path": "steadman/fonts/Gentium-Regular.ttf",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "bundled font asset; original font metadata preserved",
+      "bytes": 971304,
+      "sha256": "158d89548ef28f62abfc2921878fa253b833111e8d3932da7f501daef6d0eccf"
+    },
+    {
+      "path": "steadman/fonts/Gentium-SemiBold.ttf",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "bundled font asset; original font metadata preserved",
+      "bytes": 974052,
+      "sha256": "eb15be9fc15ce06a0cbfaf07fbd8bd1c982de0e1f9973bc8f3948ffe3ee05f63"
+    },
+    {
+      "path": "steadman/fonts/Gentium-SemiBoldItalic.ttf",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "bundled font asset; original font metadata preserved",
+      "bytes": 1039680,
+      "sha256": "79f052629fc3d39540909b0b16e2414be96a3da849309915e44dfe02b8d43d1c"
+    },
+    {
+      "path": "steadman/fonts/OFL.txt",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "bundled font asset; original font metadata preserved",
+      "bytes": 4407,
+      "sha256": "af59576a401eb8f01258b3d41b3c5dd6c78a1a5378cebb8ff63a23f5b3f1a8fd"
+    },
+    {
+      "path": "docs/archive/claude-handoff/README.md",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 5346,
+      "sha256": "9385e5be510e9430f5ffc512025ee72761274e0ef3b5e86f73686f6040f9a4b9",
+      "original_path": "../files_claude/README.md"
+    },
+    {
+      "path": "docs/archive/claude-handoff/pyproject.toml",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 1028,
+      "sha256": "a57b42c29717dbab454b66d6688aed7f93c2dfc11ee6b7269c93a9547ca80157",
+      "original_path": "../files_claude/pyproject.toml"
+    },
+    {
+      "path": "docs/archive/claude-handoff/steadman-packaging-fix/.gitignore",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 902,
+      "sha256": "398adfded190d6a1e31c1394b30d6704cd5104e9668beda98ea124903232804f",
+      "original_path": "../files_claude/steadman-packaging-fix/.gitignore"
+    },
+    {
+      "path": "docs/archive/claude-handoff/steadman-packaging-fix/LICENSE",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 1069,
+      "sha256": "2cac8c25db1f044bd969dc9b7b939f380596021cbff80da9a35cbf3c0c5cd766",
+      "original_path": "../files_claude/steadman-packaging-fix/LICENSE"
+    },
+    {
+      "path": "docs/archive/claude-handoff/steadman-packaging-fix/README.md",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 5346,
+      "sha256": "9385e5be510e9430f5ffc512025ee72761274e0ef3b5e86f73686f6040f9a4b9",
+      "original_path": "../files_claude/steadman-packaging-fix/README.md"
+    },
+    {
+      "path": "docs/archive/claude-handoff/steadman-packaging-fix/pyproject.toml",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 1028,
+      "sha256": "a57b42c29717dbab454b66d6688aed7f93c2dfc11ee6b7269c93a9547ca80157",
+      "original_path": "../files_claude/steadman-packaging-fix/pyproject.toml"
+    },
+    {
+      "path": "docs/archive/claude-handoff/steadman-packaging-fix/steadman/__init__.py",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 98,
+      "sha256": "a25d5b6b917136bf2c480ff281e7dd9a02013f93b130c4dd1c5e14f0d236e972",
+      "original_path": "../files_claude/steadman-packaging-fix/steadman/__init__.py"
+    },
+    {
+      "path": "docs/archive/claude-handoff/steadman-packaging-fix/steadman/fonts/.gitkeep",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_path": "../files_claude/steadman-packaging-fix/steadman/fonts/.gitkeep"
+    },
+    {
+      "path": "docs/archive/claude-handoff/steadman-packaging-fix/tests/test_lexicon.py",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 1023,
+      "sha256": "37cacaf61bfc2331c80d0a7088d8907d48b82c8c9896040c80833e0ee4b04d26",
+      "original_path": "../files_claude/steadman-packaging-fix/tests/test_lexicon.py"
+    },
+    {
+      "path": "docs/archive/claude-handoff/steadman-packaging-fix.zip",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 6717,
+      "sha256": "61e406e8719df196fcfcee27c313c6622e3a28539a41c63cad4ac38a8880875a",
+      "original_path": "../files_claude/steadman-packaging-fix.zip"
+    },
+    {
+      "path": "docs/archive/consolidation-plan.json",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 1448,
+      "sha256": "81596e5f1cf033e6d74596e7a071401376fc666e1008c9da909f262cd3ada7df"
+    },
+    {
+      "path": "docs/archive/initial-index.patch",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 27550,
+      "sha256": "37aec0e7826008322b5c30db9bda4507c562d0f2a806bb144d765475deef55a5"
+    },
+    {
+      "path": "docs/archive/initial-status.txt",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 407,
+      "sha256": "4c52c57bb6fd77db029fba358a04384510245cb60824131b496a6a0661193cef"
+    },
+    {
+      "path": "docs/archive/lexicon.py.bak",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 8190,
+      "sha256": "5dc0f8c0944ad0e45a7e3f7ee3e805a97cf0bebfd7ee57f133c717a4bf3b9e8a"
+    },
+    {
+      "path": "docs/archive/lexicon_update.py.bak",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 10706,
+      "sha256": "d0d2d978063eebf0e62418805562f31090af7101654a63347da79baede048064"
+    },
+    {
+      "path": "docs/archive/pre-consolidation/.Rhistory",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_path": "../.Rhistory"
+    },
+    {
+      "path": "docs/archive/pre-consolidation/README.md",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 4562,
+      "sha256": "f69816a43b2a57f5ecb9b7e219497ab14a79104bdbf2d621d909fe6a89a16e39",
+      "original_path": "../README.md"
+    },
+    {
+      "path": "docs/archive/pre-consolidation/THIRD_PARTY_NOTICES.md",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 1838,
+      "sha256": "445b8e43d5883a61d6ce7b03930bc48a0e233c97de29eb606eef0bfa038b8387",
+      "original_path": "../THIRD_PARTY_NOTICES.md"
+    },
+    {
+      "path": "docs/archive/pre-consolidation/pyproject.toml",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 2215,
+      "sha256": "12c557219e8325ffa3621fcc6a64fe2479c69dfb5f2efc5e2d7deded4a3f258c",
+      "original_path": "../pyproject.toml"
+    },
+    {
+      "path": "docs/archive/pre-consolidation/tests/test_corpus.py",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 1696,
+      "sha256": "6f691b5ffba9603dcbe069cb8441af3b7d75baa024a21d868c90bd9380e7fa1c",
+      "original_path": "../tests/test_corpus.py"
+    },
+    {
+      "path": "docs/archive/pre-consolidation/tests/test_nlp.py",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 3305,
+      "sha256": "fecb5725025b576ca42df963ac7f2c5cec5a2166b3cc1b8552ac96b03ca02455",
+      "original_path": "../tests/test_nlp.py"
+    },
+    {
+      "path": "docs/archive/restructure.sh.txt",
+      "location": "checkout",
+      "tracking": "git",
+      "purpose": "historical project source or handoff; not active application code",
+      "bytes": 363,
+      "sha256": "9bdb6e3e2d805fec5b8b354ddd677059d9a9b2d0b6dde5789eb4ddc6cd25ac7a"
+    },
+    {
+      "path": "output/legacy/achilles_tatius_leucippe_et_clitophon.pdf",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "legacy generated PDF; source revision and settings unknown",
+      "bytes": 841391,
+      "sha256": "5fb569c2b5bbe3fe0ace77af6ca50d57133feccac329008262dcc492c1d4c3d8",
+      "original_path": "../achilles_tatius_leucippe_et_clitophon.pdf"
+    },
+    {
+      "path": "output/legacy/ambrose_epistulae_variae.pdf",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "legacy generated PDF; source revision and settings unknown",
+      "bytes": 518549,
+      "sha256": "9d663d7006fe28427f3db37d14cbb461302dc7c89639ab259eff4ecf6129598f",
+      "original_path": "../ambrose_epistulae_variae.pdf"
+    },
+    {
+      "path": "output/legacy/ammianus_test.pdf",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "legacy generated PDF; source revision and settings unknown",
+      "bytes": 203309,
+      "sha256": "c11f827a4aeb9f8a8bfee0b8e12e853fbfe39331582f2a1ba92179829f4f3b8b",
+      "original_path": "../ammianus_test.pdf"
+    },
+    {
+      "path": "output/legacy/cicero_epistulae_ad_familiares.pdf",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "legacy generated PDF; source revision and settings unknown",
+      "bytes": 23937,
+      "sha256": "0640f4f4c539799e45ddec996ba22c279eb3f47524b672295bcf4ea722374c18",
+      "original_path": "../cicero_epistulae_ad_familiares.pdf"
+    },
+    {
+      "path": "output/legacy/claudian_de_bello_gothico.pdf",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "legacy generated PDF; source revision and settings unknown",
+      "bytes": 233293,
+      "sha256": "752825591011c93004ee26a46fb9c13f7bb5074e06494c4b4b1ac14aad0cc25e",
+      "original_path": "../claudian_de_bello_gothico.pdf"
+    },
+    {
+      "path": ".local-archive/outer-git/COMMIT_EDITMSG",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 118,
+      "sha256": "d87bea2b8d6c9ee1a005dfc40a4928e1060c593832da2d93f6c3392a045385f0",
+      "original_path": "../.git/COMMIT_EDITMSG"
+    },
+    {
+      "path": ".local-archive/outer-git/FETCH_HEAD",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_path": "../.git/FETCH_HEAD"
+    },
+    {
+      "path": ".local-archive/outer-git/HEAD",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 23,
+      "sha256": "f6f2b945f6c411b02ba3da9c7ace88dcf71b6af65ba2e0d89aa82900042b5a10",
+      "original_path": "../.git/HEAD"
+    },
+    {
+      "path": ".local-archive/outer-git/config",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 137,
+      "sha256": "cae33efdb02cf774435c1ff9cb16bcc1014606908530c6e1dc727615fe3e8cda",
+      "original_path": "../.git/config"
+    },
+    {
+      "path": ".local-archive/outer-git/description",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 73,
+      "sha256": "85ab6c163d43a17ea9cf7788308bca1466f1b0a8d1cc92e26e9bf63da4062aee",
+      "original_path": "../.git/description"
+    },
+    {
+      "path": ".local-archive/outer-git/hooks/applypatch-msg.sample",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 478,
+      "sha256": "0223497a0b8b033aa58a3a521b8629869386cf7ab0e2f101963d328aa62193f7",
+      "original_path": "../.git/hooks/applypatch-msg.sample"
+    },
+    {
+      "path": ".local-archive/outer-git/hooks/commit-msg.sample",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 896,
+      "sha256": "1f74d5e9292979b573ebd59741d46cb93ff391acdd083d340b94370753d92437",
+      "original_path": "../.git/hooks/commit-msg.sample"
+    },
+    {
+      "path": ".local-archive/outer-git/hooks/fsmonitor-watchman.sample",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 4726,
+      "sha256": "e0549964e93897b519bd8e333c037e51fff0f88ba13e086a331592bf801fa1d0",
+      "original_path": "../.git/hooks/fsmonitor-watchman.sample"
+    },
+    {
+      "path": ".local-archive/outer-git/hooks/post-update.sample",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 189,
+      "sha256": "81765af2daef323061dcbc5e61fc16481cb74b3bac9ad8a174b186523586f6c5",
+      "original_path": "../.git/hooks/post-update.sample"
+    },
+    {
+      "path": ".local-archive/outer-git/hooks/pre-applypatch.sample",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 424,
+      "sha256": "e15c5b469ea3e0a695bea6f2c82bcf8e62821074939ddd85b77e0007ff165475",
+      "original_path": "../.git/hooks/pre-applypatch.sample"
+    },
+    {
+      "path": ".local-archive/outer-git/hooks/pre-commit.sample",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 1649,
+      "sha256": "57185b7b9f05239d7ab52db045f5b89eb31348d7b2177eab214f5eb872e1971b",
+      "original_path": "../.git/hooks/pre-commit.sample"
+    },
+    {
+      "path": ".local-archive/outer-git/hooks/pre-merge-commit.sample",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 416,
+      "sha256": "d3825a70337940ebbd0a5c072984e13245920cdf8898bd225c8d27a6dfc9cb53",
+      "original_path": "../.git/hooks/pre-merge-commit.sample"
+    },
+    {
+      "path": ".local-archive/outer-git/hooks/pre-push.sample",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 1374,
+      "sha256": "ecce9c7e04d3f5dd9d8ada81753dd1d549a9634b26770042b58dda00217d086a",
+      "original_path": "../.git/hooks/pre-push.sample"
+    },
+    {
+      "path": ".local-archive/outer-git/hooks/pre-rebase.sample",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 4898,
+      "sha256": "4febce867790052338076f4e66cc47efb14879d18097d1d61c8261859eaaa7b3",
+      "original_path": "../.git/hooks/pre-rebase.sample"
+    },
+    {
+      "path": ".local-archive/outer-git/hooks/pre-receive.sample",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 544,
+      "sha256": "a4c3d2b9c7bb3fd8d1441c31bd4ee71a595d66b44fcf49ddb310252320169989",
+      "original_path": "../.git/hooks/pre-receive.sample"
+    },
+    {
+      "path": ".local-archive/outer-git/hooks/prepare-commit-msg.sample",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 1492,
+      "sha256": "e9ddcaa4189fddd25ed97fc8c789eca7b6ca16390b2392ae3276f0c8e1aa4619",
+      "original_path": "../.git/hooks/prepare-commit-msg.sample"
+    },
+    {
+      "path": ".local-archive/outer-git/hooks/push-to-checkout.sample",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 2783,
+      "sha256": "a53d0741798b287c6dd7afa64aee473f305e65d3f49463bb9d7408ec3b12bf5f",
+      "original_path": "../.git/hooks/push-to-checkout.sample"
+    },
+    {
+      "path": ".local-archive/outer-git/hooks/sendemail-validate.sample",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 2308,
+      "sha256": "44ebfc923dc5466bc009602f0ecf067b9c65459abfe8868ddc49b78e6ced7a92",
+      "original_path": "../.git/hooks/sendemail-validate.sample"
+    },
+    {
+      "path": ".local-archive/outer-git/hooks/update.sample",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 3650,
+      "sha256": "8d5f2fa83e103cf08b57eaa67521df9194f45cbdbcb37da52ad586097a14d106",
+      "original_path": "../.git/hooks/update.sample"
+    },
+    {
+      "path": ".local-archive/outer-git/index",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 65,
+      "sha256": "8a99f56bd3599f16165eb30aa3c8c626923a7d63855907a5b97b98b5c6cdea2b",
+      "original_path": "../.git/index"
+    },
+    {
+      "path": ".local-archive/outer-git/info/exclude",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 240,
+      "sha256": "6671fe83b7a07c8932ee89164d1f2793b2318058eb8b98dc5c06ee0a5a3b0ec1",
+      "original_path": "../.git/info/exclude"
+    },
+    {
+      "path": ".local-archive/outer-git/objects/4b/825dc642cb6eb9a060e54bf8d69288fbee4904",
+      "location": "checkout",
+      "tracking": "local-only",
+      "purpose": "inactive outer Git metadata; preserved local backup",
+      "bytes": 15,
+      "sha256": "e72602cad67ed061ec84b13e92568f873172efac19a512a1b561dbf54e2c8426",
+      "original_path": "../.git/objects/4b/825dc642cb6eb9a060e54bf8d69288fbee4904"
+    }
+  ]
+}

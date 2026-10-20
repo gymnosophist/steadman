@@ -1,135 +1,117 @@
-# steadman
+# Steadman
 
-A command-line tool for generating **Pharr-style classical text readers** with facing vocabulary, in PDF format.
+Generate Latin and Ancient Greek reader PDFs with English vocabulary glosses.
+The source text appears above two vocabulary columns on each page. This is a
+vocabulary reader, not a parallel English translation.
 
-Named after the tradition of Clyde Pharr's annotated *Aeneid* — the conviction that a student should never need to leave the page to look up a word.
+## Install
 
-Supports **Latin** and **Ancient Greek** texts from the [Tesserae corpus](https://tesserae.caset.buffalo.edu/).
+Requires Python 3.10 or later. Run these commands from the directory containing
+this README and `pyproject.toml` (the inner checkout if your folders are nested).
 
----
-
-## Installation
-
-```bash
-# Clone the repo
-git clone [https://github.com/gymnosophist/steadman.git](https://github.com/gymnosophist/steadman.git)
-cd steadman
-
-# Install (editable mode recommended for development)
-pip install -e .
-
-# With CLTK for lemmatisation (recommended):
-pip install -e ".[nlp]"
+```sh
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -e .
+# Optional lemmatisation and Latin morphological dictionary:
+python -m pip install -e '.[nlp,latin]'
+# Development and verification:
+python -m pip install -e '.[dev]'
 ```
 
-**Font (optional but recommended):**
-Download [Gentium Plus](https://software.sil.org/gentium/) from SIL International and place the `.ttf` files in `steadman/fonts/`. This font supports both Latin and polytonic Ancient Greek in the same typeface. Without it, the tool falls back to Helvetica, which handles Latin but may not render polytonic Greek correctly.
+CLTK 1.x supplies the BackoffLemmatizers used here. The optional dependency is
+restricted to that API version and may require model downloads on first use. Without
+CLTK, frequency counts use inflected word forms. Without Whitaker's Words,
+Latin lookups use Lewis & Short, which cannot resolve every inflected form.
+Fonts are included with their original SIL Open Font License.
 
----
+## Use
 
-## Usage
-
-### Interactive mode (recommended for first use)
-
-```bash
-python -m steadman
+```sh
+python -m steadman --help
+steadman
+steadman --language latin --text catilinam --format prose --output reader.pdf
+steadman --language greek --text iliad --format poetry --page-size a4
 ```
 
-This launches an interactive menu:
-1. Choose a language (Latin or Greek)
-2. Browse the Tesserae catalog and select a text
-3. Choose prose or poetry mode
-4. The PDF is generated in the current directory
+Language, text, and format are prompted when omitted. Multiple search matches
+also open a selection menu. Text search matches author or title fragments.
+Internet access is needed for catalog and text retrieval, and initially for
+lexica; dictionaries are cached in the operating system's Steadman cache.
 
-### Scripted mode
+`--threshold N` excludes lemmas occurring **N or more times**. Raising N shows
+more vocabulary; lowering it shows fewer words. Stop words are always excluded.
+The default is 10, or 3 for a selected part/book; an explicit threshold always
+wins. `--chunk-size N` sets words per chunk for prose (default 150) or lines for
+poetry (default 20). Both options require positive integers. Chunks start on
+new pages; dense vocabulary or long lines can overflow onto additional pages.
 
-```bash
-# Generate a facing-vocabulary PDF of Cicero's Catilinarians
-python -m steadman --language latin --text "catilinam" --format prose
+## Structure and tracking
 
-# Virgil's Aeneid, poetry mode, custom output path
-python -m steadman --language latin --text "aeneid" --format poetry --output aeneid_reader.pdf
+- `steadman/`: importable package; CLI, corpus, NLP, lexicon, morphology, collation, renderer.
+- `steadman/fonts/`: bundled Gentium 7.000 fonts and `OFL.txt`.
+- `tests/`: deterministic tests which require no CLTK models or network.
+- `scripts/`: reproducible artifact inventory tooling.
+- `docs/AUDIT.md`: repository comparison, changes, verification, and limitations.
+- `docs/artifact-manifest.json`: hashes and provenance of existing loose artifacts.
+- `docs/archive/`: preserved migration script, initial Git status, old backups, Claude handoff,
+  and original loose project files;
+  excluded from release archives.
+- `output/`, `tmp/`, virtual environments, caches, and generated PDFs: ignored.
 
-# Homer's Iliad, A4 paper
-python -m steadman --language greek --text "iliad" --format poetry --page-size a4
+Legacy PDFs now live in `output/legacy/`. The former outer Git directory is an
+inactive backup at `.local-archive/outer-git/`; both directories are ignored by
+Git. The surrounding folder now contains only this checkout (plus operating
+system metadata). The original loose source files and Claude handoff are
+preserved under `docs/archive/pre-consolidation/` and `docs/archive/claude-handoff/`.
 
-# Show only words appearing fewer than 5 times (more vocab, fewer exclusions)
-python -m steadman --threshold 5
+The old root `restructure.sh` has been removed. Its original contents remain in
+`docs/archive/restructure.sh.txt`. Do not run the archived script: it assumes the
+former flat layout and stages unrelated files.
+
+## Verification
+
+```sh
+python -m pytest
+python -m pip install ruff build
+ruff check steadman tests scripts
+ruff format --check steadman tests scripts
+python -m build
+python scripts/inventory_artifacts.py --check
 ```
 
-### All options
+The inventory records 60 retained artifacts, including fonts, source archives,
+legacy PDFs, and the inactive Git metadata. It preserves original paths and
+SHA-256 hashes. PDFs and inactive Git metadata remain local; the other artifacts
+are tracked. A fresh clone can skip absent local-only groups, while missing files
+within an existing group fail verification. The old PDFs' source revisions and
+generation settings remain unknown.
 
-```
---language, -l    latin or greek (default: ask interactively)
---text, -t        Search query for author/title (default: browse menu)
---format, -f      prose or poetry (default: ask interactively)
---output, -o      Output PDF path (default: author_title.pdf)
---threshold, -n   Frequency threshold for vocab exclusion (default: 10)
---page-size       letter or a4 (default: letter)
---chunk-size      Lines per page (poetry) or words per page (prose)
---verbose, -v     Enable debug logging
-```
+Vocabulary uses dictionary alphabetical order throughout analysis and rendering.
+Greek accents, breathing marks, iota subscripts, capitalization, punctuation, and
+homonym numbers do not affect primary order; final sigma sorts with sigma.
+Displayed spellings remain unchanged. Citation forms after commas do not change
+the headword's position. Equivalent Unicode encodings share the same sort key.
 
----
+## Accuracy limits
 
-## How it works
+Glosses are dictionary suggestions, not context-aware translations. Latin sense
+selection uses dictionary frequency, not sentence context. Greek accent-stripped
+matching can be ambiguous, and the LSJ9 source contains some malformed short
+definitions. A small correction table and filter catch some errors; human review
+is still needed. Missing dictionary results are omitted from the PDF.
 
-The Pharr method: for a given text, words that appear **fewer than N times** are printed in a facing vocabulary column, with dictionary forms and brief definitions. Words appearing N or more times are assumed known from repetition and are omitted.
+See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for data and font attribution.
+Code is MIT licensed; see [LICENSE](LICENSE).
 
-**Pipeline:**
-1. **Corpus** — texts fetched live from the Tesserae REST API (no local files needed)
-2. **NLP** — tokenised and lemmatised with CLTK's BackoffLemmatizer
-3. **Lexicon** — definitions fetched from [Logeion](https://logeion.uchicago.edu) (Lewis-Short for Latin, Middle Liddell for Greek), cached locally after first lookup
-4. **Render** — PDF built with ReportLab; two-column vocabulary layout; Gentium Plus font for Unicode support
+### HTTPS troubleshooting on this machine
 
----
+The installed Python certificate bundle rejected the Tesserae certificate chain
+during this audit. The same requests succeeded with macOS's system bundle:
 
-## Project structure
-
-```
-steadman/
-├── steadman/
-│   ├── __init__.py
-│   ├── __main__.py     # Entry point: python -m steadman
-│   ├── cli.py          # Argument parsing, interactive menus, progress bars
-│   ├── corpus.py       # Tesserae API: catalog and text fetching, chunking
-│   ├── lexicon.py      # Logeion API: Lewis-Short and Middle Liddell lookup
-│   ├── nlp.py          # Tokenisation, lemmatisation, frequency analysis
-│   ├── render.py       # ReportLab PDF generation
-│   └── fonts/          # Place Gentium Plus .ttf files here
-├── tests/
-│   ├── test_nlp.py
-│   └── test_corpus.py
-├── pyproject.toml
-└── README.md
+```sh
+REQUESTS_CA_BUNDLE=/etc/ssl/cert.pem steadman --language latin --text catilinam --format prose
 ```
 
----
-
-## Running tests
-
-```bash
-pip install -e ".[dev]"
-pytest
-```
-
----
-
-## Differences from the original
-
-| Old (`steadman.py`) | New |
-|---|---|
-| Jupyter notebook workflow | `python -m steadman` CLI |
-| Hardcoded local XML lexica | Logeion API with disk cache |
-| Stale CSV text catalogs | Live Tesserae REST API |
-| `python-docx` OOXML two-column hack | ReportLab `BalancedColumns` |
-| Global state, everything in one class | Separate `corpus`, `lexicon`, `nlp`, `render` modules |
-| Vendored `open_words` in repo | Standard pip dependency |
-| Python 3.7 venv committed to repo | `pyproject.toml`, no committed venv |
-| No tests | Pytest suite |
-
----
-
-## License
-
-MIT — see LICENSE.
+This keeps certificate verification enabled. The path is platform-specific;
+other machines may work without an override.

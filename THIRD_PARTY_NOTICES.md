@@ -3,8 +3,8 @@
 ## Whitaker's Words (Latin morphology and primary lexicon)
 
 Steadman uses William Whitaker's WORDS Latin dictionary and morphological
-analyzer, via [whitakers_words](https://github.com/mk270/whitakers-words)
-<!-- CONFIRM: swap in the actual Python port/repo Steadman depends on -->.
+analyzer, via [whitakers_words](https://github.com/blagae/whitakers_words)
+.
 
 William A. Whitaker (1936-2010) released WORDS as public domain software,
 free for any use. The dictionary and program are maintained today as a
@@ -13,8 +13,7 @@ digital preservation effort by volunteer contributors.
 ## Lewis & Short (Latin fallback lexicon)
 
 Steadman's Latin fallback definitions, used when Whitaker's Words has no
-entry, come from [lewis-short-json](https://github.com/IohannesArnold/lewis-short-json)
-<!-- CONFIRM: swap in the actual repo Steadman depends on -->,
+entry, come from [lewis-short-json](https://github.com/IohannesArnold/lewis-short-json),
 a JSON conversion of:
 
 Lewis, Charlton T.; Short, Charles. *A Latin Dictionary*. Perseus Project,
@@ -39,3 +38,19 @@ Copyright (c) 2026 Francisco Riordan, licensed under
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/legalcode).
 Steadman downloads `lsj9_short_defs.json` from that repository and caches it
 locally, unmodified.
+
+## Gentium fonts (bundled)
+
+`steadman/fonts/` contains the unmodified Gentium 7.000 font files supplied
+with this local project. Embedded metadata credits Copyright (c) 2003-2025
+SIL Global, with Reserved Font Names "Gentium" and "SIL". The complete
+SIL Open Font License 1.1 and copyright notice were extracted verbatim from
+the font metadata into `steadman/fonts/OFL.txt`. These fonts retain that
+license, independently of the project's MIT code license.
+
+## Tesserae texts
+
+Catalog metadata comes from the Tesserae API, and text content from
+https://github.com/tesserae/tesserae/tree/master/texts . Source editions and
+rights vary by work; consult each upstream text's provenance before
+redistributing generated readers. The source texts are fetched at runtime.

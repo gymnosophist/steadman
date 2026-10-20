@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+# Run from the repo root AFTER unzipping this bundle over it.
+# Moves the flat modules into the steadman/ package and removes .Rhistory.
+set -euo pipefail
+mkdir -p steadman
+for f in __main__.py cli.py corpus.py lexicon.py morphology.py nlp.py render.py; do
+  git mv "$f" "steadman/$f"
+done
+git rm -q -f .Rhistory
+git add -A
+git status --short

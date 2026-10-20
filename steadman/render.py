@@ -31,27 +31,27 @@ Font note:
 from __future__ import annotations
 
 import logging
-import os
+from html import escape
 from pathlib import Path
-from typing import Sequence
 
-from reportlab.lib.pagesizes import letter, A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
-from reportlab.lib.units import inch, cm
 from reportlab.lib import colors
-from reportlab.platypus import (
-    SimpleDocTemplate,
-    Paragraph,
-    Spacer,
-    PageBreak,
-    HRFlowable,
-    BalancedColumns,
-    KeepTogether,
-)
+from reportlab.lib.pagesizes import A4, letter
+from reportlab.lib.styles import ParagraphStyle
+from reportlab.lib.units import inch
 from reportlab.pdfbase import pdfmetrics
 from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.platypus import (
+    BalancedColumns,
+    HRFlowable,
+    PageBreak,
+    Paragraph,
+    SimpleDocTemplate,
+    Spacer,
+)
 
 from steadman.lexicon import Entry
+
+from .collation import alphabetical_key
 
 log = logging.getLogger(__name__)
 
@@ -62,7 +62,7 @@ log = logging.getLogger(__name__)
 # Gentium Plus is available from SIL International.
 # We look for it in a few common locations.
 _GENTIUM_SEARCH_PATHS = [
-    Path(__file__).parent / "fonts",   # ← add this first so it's checked first
+    Path(__file__).parent / "fonts",
     Path("/usr/share/fonts/truetype/gentium"),
     Path("/usr/share/fonts/gentium"),
     Path.home() / ".local/share/fonts",
@@ -70,7 +70,7 @@ _GENTIUM_SEARCH_PATHS = [
     Path("C:/Windows/Fonts"),
 ]
 
-_FONT_NAME = "Helvetica"   # fallback
+_FONT_NAME = "Helvetica"  # fallback
 _FONT_BOLD = "Helvetica-Bold"
 _FONT_ITALIC = "Helvetica-Oblique"
 
@@ -84,10 +84,11 @@ def _try_register_gentium() -> tuple[str, str, str]:
     If not found, returns the Helvetica fallback tuple and logs a warning.
     """
     candidates = {
-    "GentiumPlus": ["Gentium-Regular.ttf", "GentiumPlus-Regular.ttf", "GentiumPlus.ttf"],
-    "GentiumPlus-Bold": ["Gentium-Bold.ttf", "GentiumPlus-Bold.ttf"],
-    "GentiumPlus-Italic": ["Gentium-Italic.ttf", "GentiumPlus-Italic.ttf"],
-}
+        "GentiumPlus": ["Gentium-Regular.ttf", "GentiumPlus-Regular.ttf", "GentiumPlus.ttf"],
+        "GentiumPlus-Bold": ["Gentium-Bold.ttf", "GentiumPlus-Bold.ttf"],
+        "GentiumPlus-Italic": ["Gentium-Italic.ttf", "GentiumPlus-Italic.ttf"],
+        "GentiumPlus-BoldItalic": ["Gentium-BoldItalic.ttf", "GentiumPlus-BoldItalic.ttf"],
+    }
 
     registered = {}
     for font_id, filenames in candidates.items():
@@ -106,6 +107,15 @@ def _try_register_gentium() -> tuple[str, str, str]:
                 break
 
     if "GentiumPlus" in registered:
+        pdfmetrics.registerFontFamily(
+            "GentiumPlus",
+            normal="GentiumPlus",
+            bold="GentiumPlus-Bold" if "GentiumPlus-Bold" in registered else "GentiumPlus",
+            italic="GentiumPlus-Italic" if "GentiumPlus-Italic" in registered else "GentiumPlus",
+            boldItalic="GentiumPlus-BoldItalic"
+            if "GentiumPlus-BoldItalic" in registered
+            else "GentiumPlus",
+        )
         regular = "GentiumPlus"
         bold = "GentiumPlus-Bold" if "GentiumPlus-Bold" in registered else "Helvetica-Bold"
         italic = "GentiumPlus-Italic" if "GentiumPlus-Italic" in registered else "Helvetica-Oblique"
@@ -128,6 +138,7 @@ FONT_REGULAR, FONT_BOLD, FONT_ITALIC = _try_register_gentium()
 # Style definitions
 # ---------------------------------------------------------------------------
 
+
 def _build_styles() -> dict[str, ParagraphStyle]:
     """
     Build the paragraph style dictionary.
@@ -135,14 +146,13 @@ def _build_styles() -> dict[str, ParagraphStyle]:
     We define our own styles rather than modifying getSampleStyleSheet()
     so that multiple calls don't accumulate duplicate style registrations.
     """
-    base = getSampleStyleSheet()
     styles = {}
 
     styles["text_body"] = ParagraphStyle(
         "text_body",
         fontName=FONT_REGULAR,
         fontSize=12,
-        leading=16,      # line height: 12pt font + 4pt leading
+        leading=16,  # line height: 12pt font + 4pt leading
         spaceAfter=4,
     )
 
@@ -187,6 +197,7 @@ def _build_styles() -> dict[str, ParagraphStyle]:
 # Page content builders
 # ---------------------------------------------------------------------------
 
+
 def _build_text_block(chunk: str, mode: str, styles: dict) -> list:
     """
     Build the main text flowables for a page.
@@ -199,7 +210,7 @@ def _build_text_block(chunk: str, mode: str, styles: dict) -> list:
     if mode == "poetry":
         for line in chunk.split("\n"):
             if line.strip():
-                flowables.append(Paragraph(line.strip(), styles["text_verse"]))
+                flowables.append(Paragraph(escape(line.strip()), styles["text_verse"]))
             else:
                 flowables.append(Spacer(1, 4))
     else:
@@ -223,7 +234,7 @@ def _build_vocab_column(
     two-column layout automatically — no manual OOXML needed.
     """
     entries = []
-    for lemma in lemma_order:
+    for lemma in sorted(lemma_order, key=alphabetical_key):
         entry = vocab_entries.get(lemma)
         if not entry:
             continue
@@ -249,6 +260,7 @@ def _build_vocab_column(
 # Public interface
 # ---------------------------------------------------------------------------
 
+
 def build_pdf(
     chunks: list[str],
     vocab_by_chunk: list[dict[str, Entry]],
@@ -270,6 +282,8 @@ def build_pdf(
         mode:                  'poetry' or 'prose'.
         page_size:             'letter' or 'a4'.
     """
+    if not (len(chunks) == len(vocab_by_chunk) == len(lemma_order_by_chunk)):
+        raise ValueError("Each text chunk needs matching vocabulary and lemma order")
     output_path = Path(output_path)
     psize = A4 if page_size.lower() == "a4" else letter
 
@@ -287,7 +301,7 @@ def build_pdf(
     story = []
 
     if title:
-        story.append(Paragraph(title, styles["title_style"]))
+        story.append(Paragraph(escape(title), styles["title_style"]))
         story.append(Spacer(1, 0.2 * inch))
 
     total = len(chunks)

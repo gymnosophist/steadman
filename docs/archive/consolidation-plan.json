@@ -1,0 +1,52 @@
+{
+  "moves": [
+    {
+      "source": "../achilles_tatius_leucippe_et_clitophon.pdf",
+      "destination": "output/legacy/achilles_tatius_leucippe_et_clitophon.pdf"
+    },
+    {
+      "source": "../ambrose_epistulae_variae.pdf",
+      "destination": "output/legacy/ambrose_epistulae_variae.pdf"
+    },
+    {
+      "source": "../ammianus_test.pdf",
+      "destination": "output/legacy/ammianus_test.pdf"
+    },
+    {
+      "source": "../cicero_epistulae_ad_familiares.pdf",
+      "destination": "output/legacy/cicero_epistulae_ad_familiares.pdf"
+    },
+    {
+      "source": "../claudian_de_bello_gothico.pdf",
+      "destination": "output/legacy/claudian_de_bello_gothico.pdf"
+    },
+    {
+      "source": "../files_claude",
+      "destination": "docs/archive/claude-handoff"
+    },
+    {
+      "source": "../tests",
+      "destination": "docs/archive/pre-consolidation/tests"
+    },
+    {
+      "source": "../README.md",
+      "destination": "docs/archive/pre-consolidation/README.md"
+    },
+    {
+      "source": "../THIRD_PARTY_NOTICES.md",
+      "destination": "docs/archive/pre-consolidation/THIRD_PARTY_NOTICES.md"
+    },
+    {
+      "source": "../pyproject.toml",
+      "destination": "docs/archive/pre-consolidation/pyproject.toml"
+    },
+    {
+      "source": "../.Rhistory",
+      "destination": "docs/archive/pre-consolidation/.Rhistory"
+    },
+    {
+      "source": "../.git",
+      "destination": ".local-archive/outer-git"
+    }
+  ]
+}

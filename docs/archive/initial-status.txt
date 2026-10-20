@@ -1,0 +1,16 @@
+## main...origin/main
+D  README.md
+D  THIRD_PARTY_NOTICES.md
+R  .Rhistory -> __init__.py
+D  corpus.py
+A  restructure.sh
+R  __main__.py -> steadman/__main__.py
+R  cli.py -> steadman/cli.py
+A  steadman/corpus.py
+R  lexicon.py -> steadman/lexicon.py
+R  morphology.py -> steadman/morphology.py
+R  nlp.py -> steadman/nlp.py
+R  render.py -> steadman/render.py
+?? fonts/
+?? lexicon.py.bak
+?? lexicon_update.py.bak

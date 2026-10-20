@@ -19,7 +19,7 @@ Greek normalisation:
   Ancient Greek text from Tesserae uses Unicode polytonic encoding.
   We do NOT convert to betacode — that was necessary for the old
   Middle Liddell XML lookup (which keyed entries on betacode strings),
-  but Logeion accepts Unicode directly.
+  and the current LSJ9 index accepts Unicode directly.
 
 ---------------------------------------------------------------------------
 Tokens vs lemmas — why both are tracked from here on
@@ -42,10 +42,13 @@ lexicon.py can do an accurate dictionary lookup later.
 
 from __future__ import annotations
 
-import re
 import logging
+import re
+import unicodedata
 from collections import Counter
 from typing import Callable
+
+from .collation import alphabetical_key
 
 log = logging.getLogger(__name__)
 
@@ -57,40 +60,166 @@ log = logging.getLogger(__name__)
 # Drawn from CLTK's list plus common abbreviations and Roman numerals.
 LATIN_STOPS = {
     # pronouns & demonstratives
-    "ego", "tu", "nos", "vos", "is", "ea", "id", "hic", "haec", "hoc",
-    "ille", "illa", "illud", "ipse", "ipsa", "ipsum", "idem", "qui", "quae",
-    "quod", "quis", "quid",
+    "ego",
+    "tu",
+    "nos",
+    "vos",
+    "is",
+    "ea",
+    "id",
+    "hic",
+    "haec",
+    "hoc",
+    "ille",
+    "illa",
+    "illud",
+    "ipse",
+    "ipsa",
+    "ipsum",
+    "idem",
+    "qui",
+    "quae",
+    "quod",
+    "quis",
+    "quid",
     # prepositions
-    "in", "ad", "ab", "ex", "de", "cum", "per", "sub", "pro", "ante",
-    "post", "inter", "super", "ob", "sine", "contra",
+    "in",
+    "ad",
+    "ab",
+    "ex",
+    "de",
+    "cum",
+    "per",
+    "sub",
+    "pro",
+    "ante",
+    "post",
+    "inter",
+    "super",
+    "ob",
+    "sine",
+    "contra",
     # conjunctions & particles
-    "et", "sed", "aut", "atque", "ac", "vel", "nec", "neque", "nam",
-    "enim", "autem", "tamen", "ergo", "igitur", "itaque", "ita", "non",
-    "nunc", "iam", "tum", "ubi", "ut", "ne", "si",
+    "et",
+    "sed",
+    "aut",
+    "atque",
+    "ac",
+    "vel",
+    "nec",
+    "neque",
+    "nam",
+    "enim",
+    "autem",
+    "tamen",
+    "ergo",
+    "igitur",
+    "itaque",
+    "ita",
+    "non",
+    "nunc",
+    "iam",
+    "tum",
+    "ubi",
+    "ut",
+    "ne",
+    "si",
     # common verbs
-    "sum", "esse", "est", "sunt", "fui", "esse", "possum",
+    "sum",
+    "esse",
+    "est",
+    "sunt",
+    "fui",
+    "esse",
+    "possum",
     # Roman numerals / abbreviations that slip through tokenisation
-    "i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix", "x",
-    "a", "m", "p", "c", "l", "q", "t",
+    "i",
+    "ii",
+    "iii",
+    "iv",
+    "v",
+    "vi",
+    "vii",
+    "viii",
+    "ix",
+    "x",
+    "a",
+    "m",
+    "p",
+    "c",
+    "l",
+    "q",
+    "t",
     # punctuation tokens
-    "", "punc", ",", ".", ";", ":", "?", "!", "-",
+    "",
+    "punc",
+    ",",
+    ".",
+    ";",
+    ":",
+    "?",
+    "!",
+    "-",
 }
 
 # Greek stop words: equivalent set for Ancient Greek.
 GREEK_STOPS = {
     # articles
-    "ὁ", "ἡ", "τό", "οἱ", "αἱ", "τά",
+    "ὁ",
+    "ἡ",
+    "τό",
+    "οἱ",
+    "αἱ",
+    "τά",
     # pronouns
-    "αὐτός", "αὐτή", "αὐτό", "ἐγώ", "σύ", "ἡμεῖς", "ὑμεῖς",
-    "οὗτος", "αὕτη", "τοῦτο", "ἐκεῖνος",
+    "αὐτός",
+    "αὐτή",
+    "αὐτό",
+    "ἐγώ",
+    "σύ",
+    "ἡμεῖς",
+    "ὑμεῖς",
+    "οὗτος",
+    "αὕτη",
+    "τοῦτο",
+    "ἐκεῖνος",
     # conjunctions & particles
-    "καί", "δέ", "μέν", "γάρ", "ἀλλά", "ὅτι", "εἰ", "ἐν", "εἰς",
-    "ἐκ", "ἐξ", "ἐπί", "πρός", "παρά", "κατά", "περί", "ὑπό",
-    "οὐ", "οὐκ", "οὐχ", "μή", "οὖν", "δή", "τε", "ἄρα", "ὡς",
+    "καί",
+    "δέ",
+    "μέν",
+    "γάρ",
+    "ἀλλά",
+    "ὅτι",
+    "εἰ",
+    "ἐν",
+    "εἰς",
+    "ἐκ",
+    "ἐξ",
+    "ἐπί",
+    "πρός",
+    "παρά",
+    "κατά",
+    "περί",
+    "ὑπό",
+    "οὐ",
+    "οὐκ",
+    "οὐχ",
+    "μή",
+    "οὖν",
+    "δή",
+    "τε",
+    "ἄρα",
+    "ὡς",
     # common verbs
-    "εἰμί", "εἶναι",
+    "εἰμί",
+    "εἶναι",
     # punctuation
-    "", "·", ",", ".", ";", "᾽",
+    "",
+    "·",
+    ",",
+    ".",
+    ";",
+    "᾽",
 }
 
 
@@ -113,6 +242,9 @@ def tokenise(text: str) -> list[str]:
     We keep Unicode combining characters (diacritics) so polytonic Greek
     is not mangled. A Greek word like 'ἄνθρωπος' stays intact.
     """
+    # Tesserae Greek mixes composed and decomposed accents. Normalize before
+    # matching stop words or dictionary keys.
+    text = unicodedata.normalize("NFC", text)
     # Replace hyphens and em-dashes with spaces
     text = text.replace("—", " ").replace("-", " ")
     # Strip other punctuation (but not letters or diacritics)
@@ -124,10 +256,12 @@ def tokenise(text: str) -> list[str]:
 # Lemmatisation
 # ---------------------------------------------------------------------------
 
+
 def _get_latin_lemmatiser():
     """Lazy import of CLTK's Latin BackoffLemmatizer."""
     try:
         from cltk.lemmatize import LatinBackoffLemmatizer
+
         return LatinBackoffLemmatizer()
     except ImportError:
         log.warning(
@@ -141,6 +275,7 @@ def _get_greek_lemmatiser():
     """Lazy import of CLTK's Greek BackoffLemmatizer."""
     try:
         from cltk.lemmatize import GreekBackoffLemmatizer
+
         return GreekBackoffLemmatizer()
     except ImportError:
         log.warning(
@@ -209,6 +344,7 @@ def lemmatise_pairs(tokens: list[str], language: str) -> list[tuple[str, str]]:
 # Frequency analysis and vocabulary selection
 # ---------------------------------------------------------------------------
 
+
 def build_vocab_list(
     lines: list[str],
     language: str,
@@ -220,7 +356,7 @@ def build_vocab_list(
 
     The logic follows the Pharr method:
       - Count how often each lemma appears in the text.
-      - Words that appear MORE than exclude_threshold times are assumed
+      - Words that appear at least exclude_threshold times are assumed
         known (or learnable from repetition), so they're excluded.
       - Stop words are always excluded.
       - What remains is the 'facing vocabulary' — the words a student
@@ -276,20 +412,23 @@ def build_vocab_list(
 
     counts = Counter(all_lemmas)
 
-    vocab = sorted({
-        lemma
-        for lemma, count in counts.items()
-        if count < exclude_threshold
-        and lemma not in stops
-        and len(lemma) > 1
-    })
+    vocab = sorted(
+        {
+            lemma
+            for lemma, count in counts.items()
+            if count < exclude_threshold and lemma not in stops and len(lemma) > 1
+        },
+        key=alphabetical_key,
+    )
 
     # Trim the token map down to just the lemmas that survived filtering.
     vocab_tokens = {lemma: lemma_to_token[lemma] for lemma in vocab}
 
     log.info(
         "Vocabulary: %d unique lemmas, %d selected (threshold=%d)",
-        len(counts), len(vocab), exclude_threshold,
+        len(counts),
+        len(vocab),
+        exclude_threshold,
     )
     return vocab, vocab_tokens
 
@@ -329,4 +468,4 @@ def get_page_vocab(
         if lemma in vocab_set and lemma not in page_map:
             page_map[lemma] = token
 
-    return sorted(page_map.items())
+    return sorted(page_map.items(), key=lambda pair: alphabetical_key(pair[0]))

@@ -1,0 +1,42 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "steadman"
+dynamic = ["version"]
+description = "Add English vocabulary to ancient texts: Pharr-style Latin and Greek readers as PDFs"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "gymnosophist" }]
+dependencies = [
+    "requests",
+    "reportlab",
+    "platformdirs",
+]
+
+[project.optional-dependencies]
+# Lemmatisation (Latin and Greek BackoffLemmatizers)
+nlp = ["cltk"]
+# Primary Latin lexicon / morphological analyser (not on PyPI)
+latin = ["whitakers_words @ git+https://github.com/blagae/whitakers_words.git"]
+dev = ["pytest"]
+
+[project.scripts]
+steadman = "steadman.__main__:main"
+
+[project.urls]
+Repository = "https://github.com/gymnosophist/steadman"
+
+[tool.setuptools]
+packages = ["steadman"]
+
+[tool.setuptools.dynamic]
+version = { attr = "steadman.__version__" }
+
+[tool.setuptools.package-data]
+steadman = ["fonts/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
